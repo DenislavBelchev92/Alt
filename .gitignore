@@ -1,0 +1,20 @@
+# Byte-compiled files
+*.pyc
+__pycache__/
+
+# Virtual environment
+venv/
+env/
+
+# Database
+#*.sqlite3
+
+# Media and static files
+/media/
+staticfiles/
+
+# IDE files
+#.vscode/
+
+# Django secret keys
+*.env
