@@ -8,6 +8,7 @@ env/
 
 # Database
 *.sqlite3
+db.sqlite3
 
 # Media and static files
 /media/
