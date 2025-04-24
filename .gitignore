@@ -8,7 +8,6 @@ env/
 
 # Database
 *.sqlite3
-db.sqlite3
 
 # Media and static files
 /media/
@@ -19,3 +18,6 @@ staticfiles/
 
 # Django secret keys
 *.env
+
+# MacOS
+.DS_Store
