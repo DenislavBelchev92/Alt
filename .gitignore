@@ -12,6 +12,7 @@ env/
 # Media and static files
 /media/
 staticfiles/
+static/
 
 # IDE files
 #.vscode/
