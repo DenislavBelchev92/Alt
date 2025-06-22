@@ -12,6 +12,13 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 
 from pathlib import Path
 import os 
+import dj_database_url
+
+# Load .env file for local development (only if exists)
+if os.path.exists('.env'):
+    from dotenv import load_dotenv
+    load_dotenv()
+    
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -74,15 +81,21 @@ WSGI_APPLICATION = 'root.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
+DATABASES_ENGINE='django.db.backends.postgresql'
+DATABASES_NAME='alt_db'
+DATABASES_USER ='first_user'
+DATABASES_PASSWORD='1234'
+# Or the IP of your PostgreSQL server
+DATABASES_HOST='localhost'
+# Default PostgreSQL port
+DATABASES_PORT='5432'
+
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'alt_db',
-        'USER': 'first_user',
-        'PASSWORD': '1234',
-        'HOST': 'localhost',  # Or the IP of your PostgreSQL server
-        'PORT': '5432',       # Default PostgreSQL port
-    }
+    'default': dj_database_url.config(
+        default=os.environ.get('DATABASE_URL', 'postgres://first_user:1234@localhost:5432/alt_db'),
+        conn_max_age=600,
+        conn_health_checks=True, 
+    )
 }
 
 
