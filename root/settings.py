@@ -32,7 +32,7 @@ SECRET_KEY = 'django-insecure-ja##vj934($q=7rpx-j$@p75ya2r9(qlcl66$+4!@%e$b^qg^u
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["https://alt-84zs.onrender.com", "alt-84zs.onrender.com", "alt.onrender.com"]
+ALLOWED_HOSTS = ["https://alt-84zs.onrender.com", "alt-84zs.onrender.com", "alt.onrender.com", "localhost", "127.0.0.1"]
 
 
 # Application definition
@@ -123,8 +123,10 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
-STATIC_URL = 'static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+STATIC_URL = '/static/'
+STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]  # keep this for local dev
+
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')    # different dir for collectstatic
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 # Default primary key field type
