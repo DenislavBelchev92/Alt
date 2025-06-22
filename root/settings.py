@@ -90,12 +90,16 @@ DATABASES_HOST='localhost'
 # Default PostgreSQL port
 DATABASES_PORT='5432'
 
+#FIXME 
+#         default=f"postgres://{os.environ.get('DB_USER', 'first_user')}:{os.environ.get('DB_PASSWORD', '1234')}@{os.environ.get('DB_HOST', 'localhost')}:{os.environ.get('DB_PORT', '5432')}/{os.environ.get('DB_NAME', 'alt_db')}",
+#         default=os.environ.get('DATABASE_URL'),
+#         ssl_require=os.environ.get('RENDER', False)  # Optional: require SSL on Render
+print("Denis DEBUG FIXME {} DB_HOST {} DB_PASSWORD {}".format(os.environ.get('DATABASE_URL'), os.environ.get('DB_HOST'), os.environ.get('DB_PASSWORD')  ))
 DATABASES = {
     'default': dj_database_url.config(
         default=os.environ.get('DATABASE_URL'),
         conn_max_age=600,
         conn_health_checks=True, 
-        ssl_require=os.environ.get('RENDER', False)  # Optional: require SSL on Render
     )
 }
 
