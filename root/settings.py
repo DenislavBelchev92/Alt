@@ -92,9 +92,10 @@ DATABASES_PORT='5432'
 
 DATABASES = {
     'default': dj_database_url.config(
-        default=os.environ.get('DATABASE_URL', 'postgres://first_user:1234@localhost:5432/alt_db'),
+        default=os.environ.get('DATABASE_URL'),
         conn_max_age=600,
         conn_health_checks=True, 
+        ssl_require=os.environ.get('RENDER', False)  # Optional: require SSL on Render
     )
 }
 
