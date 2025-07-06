@@ -9,5 +9,6 @@ def index(request):
 
 def login(request):
     return render(request, 'login.html', {\
+        'show_navbar' : False,
         'show_footer' : False
     })

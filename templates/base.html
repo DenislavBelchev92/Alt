@@ -10,6 +10,7 @@
     {% block extra_head %}{% endblock %}
   </head>
   <body>
+    {% if show_navbar != False %}
     <nav class="navbar navbar-expand-md navbar-dark bg-dark fixed-top">
       <!-- LEFT -->
       <a class="navbar-brand" href="{% url 'index' %}">Alt</a>
@@ -33,16 +34,17 @@
         </ul>
 
         <!-- RIGHT SIDE: search + login -->
-        <div class="d-flex align-items-center ml-auto">
-          <form class="form-inline my-2 my-lg-0">
-            <input class="form-control mr-sm-2" type="text" placeholder="Search" aria-label="Search">
-            <button class="btn btn-outline-success my-2 my-sm-0" type="submit">Search</button>
+        <div class="d-flex flex-column flex-md-row align-items-center ml-auto">
+          <form class="form-inline my-2 my-lg-0 w-100 w-md-auto">
+            <input class="form-control mr-sm-2 w-100" type="text" placeholder="Search" aria-label="Search">
+            <button class="btn btn-outline-success my-2 my-sm-0 w-100 w-md-auto" type="submit">Search</button>
           </form>
-          <a class="nav-link text-white ml-2" href="{% url 'login' %}">Log in</a>
+          <a class="nav-link text-white mt-2 mt-md-0 ml-md-2" href="{% url 'login' %}">Log in</a>
         </div>
 
       </div>
     </nav>
+    {% endif %}
 
     <!-- PAGE CONTENT -->
     <main role="main" class="container">
