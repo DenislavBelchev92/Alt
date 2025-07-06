@@ -1,0 +1,67 @@
+<!-- templates/base.html -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>{% block title %}Alt Project{% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'bootstrap/css/bootstrap.min.css' %}">
+    {% block extra_head %}{% endblock %}
+  </head>
+  <body>
+    <nav class="navbar navbar-expand-md navbar-dark bg-dark fixed-top">
+      <!-- LEFT -->
+      <a class="navbar-brand" href="{% url 'index' %}">Alt</a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarsExampleDefault" aria-controls="navbarsExampleDefault" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <!-- COLLAPSIBLE NAV -->
+      <div class="collapse navbar-collapse" id="navbarsExampleDefault">
+        
+        <!-- LEFT NAV -->
+        <ul class="navbar-nav mr-auto">
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" id="dropdown01" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Dropdown</a>
+            <div class="dropdown-menu" aria-labelledby="dropdown01">
+              <a class="dropdown-item" href="#">Action</a>
+              <a class="dropdown-item" href="#">Another action</a>
+              <a class="dropdown-item" href="#">Something else here</a>
+            </div>
+          </li>
+        </ul>
+
+        <!-- RIGHT SIDE: search + login -->
+        <div class="d-flex align-items-center ml-auto">
+          <form class="form-inline my-2 my-lg-0">
+            <input class="form-control mr-sm-2" type="text" placeholder="Search" aria-label="Search">
+            <button class="btn btn-outline-success my-2 my-sm-0" type="submit">Search</button>
+          </form>
+          <a class="nav-link text-white ml-2" href="{% url 'login' %}">Log in</a>
+        </div>
+
+      </div>
+    </nav>
+
+    <!-- PAGE CONTENT -->
+    <main role="main" class="container">
+      {% block content %}{% endblock %}
+    </main>
+
+    <!-- FOOTER -->
+    {% if show_footer != False %}
+    <footer class="footer mt-auto py-3 bg-dark text-light text-center">
+      <div class="container">
+        <span>&copy; 2025 Alt Project</span>
+      </div>
+    </footer>
+    {% endif %}
+
+    <!-- JS Scripts: jQuery, Popper.js, Bootstrap JS (in this order) -->
+    <script src="{% static 'bootstrap/js/jquery-1.9.1.min.js' %}"></script>
+    <script src="{% static 'bootstrap/js/popper.min.js' %}"></script>
+    <script src="{% static 'bootstrap/js/bootstrap.min.js' %}"></script>
+    {% block extra_js %}{% endblock %}
+  </body>
+</html>
