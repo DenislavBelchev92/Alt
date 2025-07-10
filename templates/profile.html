@@ -5,8 +5,30 @@
 
 {% block content %}
   <div>
-    <h1>{{ message }}</h1>
-    <p class="lead">{{ extra_message }}</p>
-    <p>Hello, {{ user.username }}!</p>
+    <h1>{{ user.username }}</h1>
+
+    <form method="post" action="{% url 'update_skill' 'swimming' %}">
+    {% csrf_token %}
+      <table class="table table-borderless">
+        <tbody>
+          <tr>
+            <td>Swimming</td>
+            <td>
+              <div class="d-flex align-items-center">
+                <button name="action" value="decrement" type="submit" class="btn btn-sm btn-outline-secondary mr-2">-</button>
+                <div class="progress" style="width:150px; height: 20px;">
+                  <div class="progress-bar bg-info" role="progressbar"
+                      style="width:40%;"
+                      aria-valuenow="40" aria-valuemin="0" aria-valuemax="100">
+                    40%
+                  </div>
+                </div>
+                <button name="action" value="increment" type="submit" class="btn btn-sm btn-outline-secondary ml-2">+</button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </form>
   </div>
 {% endblock %}

@@ -38,6 +38,7 @@ ALLOWED_HOSTS = ["https://alt-84zs.onrender.com", "alt-84zs.onrender.com", "alt.
 # Application definition
 
 INSTALLED_APPS = [
+    'firstapp',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -88,6 +89,8 @@ DATABASES = {
         conn_health_checks=True, 
     )
 }
+
+AUTH_USER_MODEL = 'firstapp.AltUser'
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
