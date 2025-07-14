@@ -6,29 +6,34 @@
 {% block content %}
   <div>
     <h1>{{ user.username }}</h1>
-
-    <form method="post" action="{% url 'update_skill' 'swimming' %}">
-    {% csrf_token %}
-      <table class="table table-borderless">
-        <tbody>
-          <tr>
-            <td>Swimming</td>
-            <td>
+    <table class="table table-borderless">
+      <tbody>
+        {% for skill in user.get_skills %}
+        <tr>
+          <td>{{ skill.name }}</td>
+          <td>
+            <form method="post" action="{% url 'update_skill' skill.name %}">
+              {% csrf_token %}
+              <input type="hidden" name="skill_name" value="{{ skill.name }}">
               <div class="d-flex align-items-center">
                 <button name="action" value="decrement" type="submit" class="btn btn-sm btn-outline-secondary mr-2">-</button>
                 <div class="progress" style="width:150px; height: 20px;">
                   <div class="progress-bar bg-info" role="progressbar"
-                      style="width:{{ skills.swimming }}%;"
-                      aria-valuenow="{{ skills.swimming }}" aria-valuemin="0" aria-valuemax="100">
-                    {{ skills.swimming }}%
+                      style="width:{{ skill.rate }}%;"
+                      aria-valuenow="{{ skill.rate }}" aria-valuemin="0" aria-valuemax="100">
+                    {{ skill.rate }}%
                   </div>
                 </div>
                 <button name="action" value="increment" type="submit" class="btn btn-sm btn-outline-secondary ml-2">+</button>
               </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </form>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <div class="mt-3">
+      <a href="{% url 'add_skill' %}" class="btn btn-outline-secondary">Add Skill</a>
+    </div>
   </div>
 {% endblock %}

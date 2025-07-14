@@ -15,4 +15,4 @@ echo "->Remove tables"
 PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -U $DB_USER -d $DB_NAME -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
 
 echo "->Make migrations"
-python manage.py migrate
+python manage.py migrate    

@@ -4,12 +4,14 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.shortcuts import render, redirect, get_object_or_404
+from .models import Skill
+from .forms import SkillForm
 
 User = get_user_model()
 
 def index(request):
     message = "Hello"
-    extra_message = "try 1"
+    extra_message = "^_^"
     return render(request, 'index.html', {\
         'message': message,
         'extra_message': extra_message})
@@ -64,16 +66,30 @@ def profile(request):
     message = "Profile Page"
     return render(request, 'profile.html', {\
         'message': message,
-        'skills':request.user.skills})
+        'skills':request.user.get_skills()})
 
 @login_required
 def update_skill(request, skill_name):
-    skills = request.user.skills
     if request.method == "POST":
-        if skill_name == "swimming":
-            if request.POST.get("action") == "increment":
-                skills.swimming = min(skills.swimming + 1, 100)
-            elif request.POST.get("action") == "decrement":
-                skills.swimming = max(skills.swimming - 1, 0)
-            skills.save()
+        action = request.POST.get("action")
+        skill = get_object_or_404(Skill, user=request.user, name=skill_name)
+        # Increment or decrement
+        if action == "increment":
+            skill.rate = min(skill.rate + 10, 100)  # you may adjust step
+        elif action == "decrement":
+            skill.rate = max(skill.rate - 10, 0)
+
+        skill.save()
     return redirect("profile")  # Or wherever you want to go
+
+def add_skill(request):
+    if request.method == 'POST':
+        form = SkillForm(request.POST)
+        if form.is_valid():
+            skill = form.save(commit=False)
+            skill.user = request.user  # Associate the skill with the current user
+            skill.save()
+            return redirect('profile')  # Change to your profile or skills list page
+    else:
+        form = SkillForm()
+    return render(request, 'add_skill.html', {'form': form})
