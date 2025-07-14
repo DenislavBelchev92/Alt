@@ -4,7 +4,8 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.shortcuts import render, redirect, get_object_or_404
-from .models import Skill
+from .models import Skill, SkillName  # Update import as needed
+
 from .forms import SkillForm
 
 User = get_user_model()
@@ -65,31 +66,36 @@ def logout(request):
 def profile(request):
     message = "Profile Page"
     return render(request, 'profile.html', {\
-        'message': message,
-        'skills':request.user.get_skills()})
+        'message': message})
 
 @login_required
 def update_skill(request, skill_name):
     if request.method == "POST":
         action = request.POST.get("action")
-        skill = get_object_or_404(Skill, user=request.user, name=skill_name)
+
+        # Get the SkillName object by its name (assuming skill_name is a string)
+        skill_name_obj = get_object_or_404(SkillName, name=skill_name)
+
+        # Find the Skill object for this user and skill name
+        skill = get_object_or_404(Skill, user=request.user, name=skill_name_obj)
+
         # Increment or decrement
         if action == "increment":
-            skill.rate = min(skill.rate + 10, 100)  # you may adjust step
+            skill.level = min(skill.level + 1, 100)
         elif action == "decrement":
-            skill.rate = max(skill.rate - 10, 0)
+            skill.level = max(skill.level - 1, 0)
 
         skill.save()
-    return redirect("profile")  # Or wherever you want to go
+    return redirect("profile")
 
 def add_skill(request):
     if request.method == 'POST':
         form = SkillForm(request.POST)
         if form.is_valid():
             skill = form.save(commit=False)
-            skill.user = request.user  # Associate the skill with the current user
+            skill.user = request.user
             skill.save()
-            return redirect('profile')  # Change to your profile or skills list page
+            return redirect('profile')
     else:
         form = SkillForm()
     return render(request, 'add_skill.html', {'form': form})

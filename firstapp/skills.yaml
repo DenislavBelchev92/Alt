@@ -1,0 +1,23 @@
+- group: Computer skills
+  subgroups:
+    - name: Programming
+      skills:
+        - C
+        - C#
+        - Python
+    - name: Office
+      skills:
+        - Word
+        - Excel
+- group: Physics
+  subgroups:
+    - name: General
+      skills:
+        - Fat percentage
+    - name: Sport
+      skills:
+        - Swimming
+        - Running
+        - Basketball
+
+        
