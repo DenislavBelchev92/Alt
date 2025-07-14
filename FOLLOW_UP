@@ -1,0 +1,11 @@
+1. How does this work locally and find my DB
+DATABASES = {
+    'default': dj_database_url.config(
+        default=os.environ.get('DATABASE_URL'),
+        conn_max_age=600,
+        conn_health_checks=True, 
+    )
+}
+2. How the models are actually created - models.Model
+
+3. 
