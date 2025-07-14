@@ -18,9 +18,9 @@
                 <button name="action" value="decrement" type="submit" class="btn btn-sm btn-outline-secondary mr-2">-</button>
                 <div class="progress" style="width:150px; height: 20px;">
                   <div class="progress-bar bg-info" role="progressbar"
-                      style="width:40%;"
-                      aria-valuenow="40" aria-valuemin="0" aria-valuemax="100">
-                    40%
+                      style="width:{{ skills.swimming }}%;"
+                      aria-valuenow="{{ skills.swimming }}" aria-valuemin="0" aria-valuemax="100">
+                    {{ skills.swimming }}%
                   </div>
                 </div>
                 <button name="action" value="increment" type="submit" class="btn btn-sm btn-outline-secondary ml-2">+</button>

@@ -63,7 +63,8 @@ def logout(request):
 def profile(request):
     message = "Profile Page"
     return render(request, 'profile.html', {\
-        'message': message})
+        'message': message,
+        'skills':request.user.skills})
 
 @login_required
 def update_skill(request, skill_name):
@@ -71,8 +72,8 @@ def update_skill(request, skill_name):
     if request.method == "POST":
         if skill_name == "swimming":
             if request.POST.get("action") == "increment":
-                skills.swimming = min(skills.swimming + 10, 100)
+                skills.swimming = min(skills.swimming + 1, 100)
             elif request.POST.get("action") == "decrement":
-                skills.swimming = max(skills.swimming - 10, 0)
+                skills.swimming = max(skills.swimming - 1, 0)
             skills.save()
     return redirect("profile")  # Or wherever you want to go
