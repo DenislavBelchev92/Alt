@@ -12,8 +12,7 @@ python manage.py collectstatic --noinput
 # Can happan if tables structure is changed.
 # NOTE! Normally should be commented
 echo "->Remove tables"
-python manage.py flush --no-input
-python manage.py migrate --no-input
+PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -U $DB_USER -d $DB_NAME -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
 
 echo "->Make migrations"
 python manage.py migrate
