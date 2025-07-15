@@ -98,7 +98,7 @@ def update_skill(request, skill_name):
             skill.level = max(skill.level - 1, 0)
 
         skill.save()
-    return redirect("profile")
+    return redirect("profile_skills")
 
 def add_skill(request):
     if request.method == 'POST':
@@ -107,7 +107,7 @@ def add_skill(request):
             skill = form.save(commit=False)
             skill.user = request.user
             skill.save()
-            return redirect('profile')
+            return redirect('profile_skills')
     else:
         form = SkillForm()
     return render(request, 'add_skill.html', {'form': form})
