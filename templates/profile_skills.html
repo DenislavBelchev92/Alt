@@ -1,15 +1,39 @@
 <!-- templates/index.html -->
 {% extends "base.html" %}
+{% load static %}
 
-{% block title %}Profile{% endblock %}
+{% block title %}Profile Skills{% endblock %}
 
 {% block content %}
   <div>
-    <h1>{{ user.username }}</h1>
-      {% for group in user.get_skills %}
-          <h1> x {{ group }} x</h1>
-
-      {% endfor %}
+    <div class="container mt-5">
+      <div class="row align-items-center">
+        <!-- Left column: Profile picture and username -->
+      <a href="{% url 'profile_edit' %}">
+          {% if user.profile.profile_picture %}
+              <img src="{{ user.profile.profile_picture.url }}" alt="Profile" class="rounded-circle" style="width:120px;height:120px;">
+          {% else %}
+              <img src="{% static 'images/profile_avatar.jpg' %}" alt="Default Profile" class="rounded-circle" style="width:120px;height:120px;">
+          {% endif %}
+      </a>
+        <!-- Center column: Animated picture -->
+        <div class="col-md-6 text-center">
+          <!-- Example: animated GIF, replace src as needed -->
+          <img src="{% static 'images/profile_super_hero/super_here.png' %}" alt="Animated" class="img-fluid" style="max-height: 180px;">
+          <!-- Example: animated SVG or CSS animation can go here -->
+        </div>
+        <!-- Right column: Text -->
+        <div class="col-md-3">
+          <div class="p-3 bg-light rounded shadow-sm">
+            <h5>About You</h5>
+            <p>
+              You are a genius!
+            </p>
+            <!-- Add more info as needed -->
+          </div>
+        </div>
+      </div>
+    </div>
 
     <div class="accordion" id="skillAccordion">
       {% for group, subgroup_info in user.get_skills.items %}

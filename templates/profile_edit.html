@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% load static %}
+{% load form_tags %}
+{% block title %}Edit Profile{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <h2 class="mb-4">Edit Profile</h2>
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="row align-items-center">
+          <div class="col-md-3 text-center mb-3 mb-md-0">
+            <label for="profile-picture-input" style="cursor:pointer;">
+              {% if profile.profile_picture %}
+                <img src="{{ profile.profile_picture.url }}" alt="Profile" class="rounded-circle img-fluid" style="width:120px; height:120px; object-fit:cover;">
+              {% else %}
+                <img src="{% static 'images/default_avatar.png' %}" alt="Default Profile" class="rounded-circle img-fluid" style="width:120px; height:120px; object-fit:cover;">
+              {% endif %}
+            </label>
+            {{ form.profile_picture }}
+            <div><small>Click image to change</small></div>
+          </div>
+          <div class="col-md-9">
+            <div class="form-group mb-3">
+              {{ form.sur_name.label_tag }}
+              {{ form.sur_name|add_class:"form-control" }}
+            </div>
+            <div class="form-group mb-3">
+              {{ form.age.label_tag }}
+              {{ form.age|add_class:"form-control" }}
+            </div>
+            <div class="form-group mb-3">
+              {{ form.country.label_tag }}
+              {{ form.country|add_class:"form-control" }}
+            </div>
+            <div class="form-group mb-3">
+              {{ form.city.label_tag }}
+              {{ form.city|add_class:"form-control" }}
+            </div>
+            <button type="submit" class="btn btn-primary">Save Changes</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+document.querySelector('label[for="profile-picture-input"]').addEventListener('click', function() {
+    document.getElementById('profile-picture-input').click();
+});
+</script>
+{% endblock %}

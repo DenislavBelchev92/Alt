@@ -4,9 +4,8 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.shortcuts import render, redirect, get_object_or_404
-from .models import Skill, SkillName  # Update import as needed
-
-from .forms import SkillForm
+from .models import Skill, SkillName 
+from .forms import SkillForm, ProfileForm
 
 User = get_user_model()
 
@@ -51,7 +50,7 @@ def login(request):
         if user is not None:
             auth_login(request, user)
             messages.success(request, f"Welcome back, {user.username}!")        
-            return redirect('profile')
+            return redirect('profile_skills')
         else:
             messages.error(request, "Invalid username or password.")
             return render(request, "login.html")
@@ -63,9 +62,22 @@ def logout(request):
     messages.success(request, "You have been logged out.")
     return render(request, "index.html")
 
-def profile(request):
-    message = "Profile Page"
-    return render(request, 'profile.html', {\
+@login_required
+def profile_edit(request):
+    profile = request.user.profile
+    if request.method == 'POST':
+        form = ProfileForm(request.POST, request.FILES, instance=profile)
+        if form.is_valid():
+            form.save()
+            return redirect('profile_skills')  # assuming 'profile' is your profile view name
+    else:
+        form = ProfileForm(instance=profile)
+    return render(request, 'profile_edit.html', {'form': form, 'profile': profile})
+
+@login_required
+def profile_skills(request):
+    message = "Skills Profile Page"
+    return render(request, 'profile_skills.html', {\
         'message': message})
 
 @login_required
@@ -99,3 +111,4 @@ def add_skill(request):
     else:
         form = SkillForm()
     return render(request, 'add_skill.html', {'form': form})
+

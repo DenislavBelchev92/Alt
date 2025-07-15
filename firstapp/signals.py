@@ -1,6 +1,6 @@
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from .models import AltUser, Skill, SkillName, SkillSubgroup, SkillGroup
+from .models import AltUser, Skill, SkillName, SkillSubgroup, SkillGroup, Profile
 
 @receiver(post_save, sender=AltUser)
 def create_user_skills(sender, instance, created, **kwargs):
@@ -16,3 +16,6 @@ def create_user_skills(sender, instance, created, **kwargs):
 
         # Finally, assign the skill to the user
         Skill.objects.create(user=instance, name=skillname_obj, level=10)
+
+        # Create default profile values
+        Profile.objects.create(user=instance)

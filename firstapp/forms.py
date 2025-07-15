@@ -1,5 +1,5 @@
 from django import forms
-from .models import Skill
+from .models import Skill, Profile
 
 class SkillForm(forms.ModelForm):
     class Meta:
@@ -17,3 +17,11 @@ class SkillForm(forms.ModelForm):
         #     self.fields['name'].queryset = SkillName.objects.exclude(
         #         id__in=user.skill.values_list('name_id', flat=True)
         #     )
+
+class ProfileForm(forms.ModelForm):
+    class Meta:
+        model = Profile
+        fields = ['name', 'sur_name', 'last_name', 'age', 'country', 'city', 'profile_picture']
+        widgets = {
+            'profile_picture': forms.ClearableFileInput(attrs={'style': 'display:none;', 'id': 'profile-picture-input'}),
+        }
