@@ -23,5 +23,5 @@ class ProfileForm(forms.ModelForm):
         model = Profile
         fields = ['name', 'sur_name', 'last_name', 'age', 'country', 'city', 'profile_picture']
         widgets = {
-            'profile_picture': forms.ClearableFileInput(attrs={'style': 'display:none;', 'id': 'profile-picture-input'}),
+            'profile_picture': forms.FileInput(attrs={'id': 'profile-picture-input', 'style': 'display:none;'}),
         }

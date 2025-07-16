@@ -19,7 +19,11 @@
         <!-- Center column: Animated picture -->
         <div class="col-md-6 text-center">
           <!-- Example: animated GIF, replace src as needed -->
-          <img src="{% static 'images/profile_super_hero/super_here.png' %}" alt="Animated" class="img-fluid" style="max-height: 180px;">
+          {% if user.profile.profile_picture %}
+              <img src="{% static 'images/profile_super_hero/super_hero.png' %}" alt="Animated" class="rounded-circle" style="max-height: 180px;">
+          {% else %}
+              <img src="{% static 'images/profile_avatar.jpg' %}" alt="Default Profile" class="rounded-circle" style="width:120px;height:120px;">
+          {% endif %}
           <!-- Example: animated SVG or CSS animation can go here -->
         </div>
         <!-- Right column: Text -->
