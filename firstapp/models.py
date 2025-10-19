@@ -58,8 +58,9 @@ class Skill(models.Model):
     subgroup = models.CharField(max_length=50, default="Unknown")
     user = models.ForeignKey(AltUser, on_delete=models.CASCADE, related_name='skill')
     level = models.PositiveIntegerField(default=0)
+    last_updated = models.DateTimeField(auto_now=True)
 
     def save(self, *args, **kwargs):
-        # Ensure swimming is always between 0 and 100
+        # Ensure level is always between 0 and 100
         self.level = min(max(self.level, 0), 100)
         super().save(*args, **kwargs)

@@ -40,7 +40,7 @@
     </div>
 
     <div class="accordion" id="skillAccordion">
-      {% for group, subgroup_info in user.get_skills.items %}
+      {% for group, subgroup_info in organized_skills.items %}
         <div class="card">
           <div class="card-header" id="headingGroup{{ forloop.counter }}">
             <h5 class="mb-0">
@@ -71,9 +71,8 @@
                             <tr>
                               <td>{{ skill.name }}</td>
                               <td>
-                                <form method="post" action="{% url 'update_skill' skill.name %}">
+                                <form method="post" action="{% url 'update_skill' skill.id %}">
                                   {% csrf_token %}
-                                  <input type="hidden" name="skill_name" value="{{ skill.name }}">
                                   <div class="d-flex align-items-center">
                                     <button name="action" value="decrement" type="submit" class="btn btn-sm btn-outline-secondary mr-2">-</button>
                                     <div class="progress" style="width:150px; height: 20px;">

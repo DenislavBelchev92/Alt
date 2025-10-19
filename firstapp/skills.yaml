@@ -1,23 +1,62 @@
-- group: Computer skills
+- group: Linux
   subgroups:
-    - name: Programming
+    - name: Basics
       skills:
-        - C
-        - C#
-        - Python
-    - name: Office
+        - Command Line
+        - File System
+        - User Management
+        - Package Management
+    - name: Advanced
       skills:
-        - Word
-        - Excel
-- group: Physics
-  subgroups:
-    - name: General
+        - Shell Scripting
+        - System Administration
+        - Network Configuration
+        - Performance Tuning
+    - name: Ethical Hacking
       skills:
-        - Fat percentage
-    - name: Sport
-      skills:
-        - Swimming
-        - Running
-        - Basketball
+        - Penetration Testing
+        - Vulnerability Assessment
+        - Network Security
+        - Digital Forensics
 
-        
+- group: Python
+  subgroups:
+    - name: Basics
+      skills:
+        - Syntax and Variables
+        - Data Types
+        - Control Structures
+        - Functions
+    - name: Advanced
+      skills:
+        - Object-Oriented Programming
+        - Web Development
+        - Database Integration
+        - Testing
+    - name: AI
+      skills:
+        - Machine Learning
+        - Data Science
+        - Neural Networks
+        - Natural Language Processing
+
+- group: C
+  subgroups:
+    - name: Basics
+      skills:
+        - Syntax and Variables
+        - Pointers
+        - Memory Management
+        - Data Structures
+    - name: Advanced
+      skills:
+        - System Programming
+        - File I/O
+        - Multi-threading
+        - Optimization
+    - name: Controllers
+      skills:
+        - Microcontroller Programming
+        - Embedded Systems
+        - Hardware Interfacing
+        - Real-time Systems

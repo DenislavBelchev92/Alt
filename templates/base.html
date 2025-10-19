@@ -19,40 +19,25 @@
       </button>
 
       <div class="collapse navbar-collapse" id="navbarContent">
-        <!-- LEFT: Multiple Dropdowns -->
+        <!-- LEFT: Dynamic Dropdowns from skills.yaml -->
         <ul class="navbar-nav mr-auto">
-          <!-- Linux Dropdown -->
+          {% for skill_group in skills_data %}
           <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle" href="#" id="linuxDropdown" data-toggle="dropdown"
-              aria-haspopup="true" aria-expanded="false">Linux</a>
-            <div class="dropdown-menu" aria-labelledby="linuxDropdown">
-              <a class="dropdown-item" href="#">Basics</a>
-              <a class="dropdown-item" href="#">Advanced</a>
-              <a class="dropdown-item" href="#">Ethical Hacking</a>
+            <a class="nav-link dropdown-toggle" href="#" id="{{ skill_group.group|lower }}Dropdown" data-toggle="dropdown"
+              aria-haspopup="true" aria-expanded="false">{{ skill_group.group }}</a>
+            <div class="dropdown-menu" aria-labelledby="{{ skill_group.group|lower }}Dropdown">
+              {% for subgroup in skill_group.subgroups %}
+                <h6 class="dropdown-header">{{ subgroup.name }}</h6>
+                {% for skill in subgroup.skills %}
+                  <a class="dropdown-item pl-4" href="#">{{ skill }}</a>
+                {% endfor %}
+                {% if not forloop.last %}
+                  <div class="dropdown-divider"></div>
+                {% endif %}
+              {% endfor %}
             </div>
           </li>
-          
-          <!-- Python Dropdown -->
-          <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle" href="#" id="pythonDropdown" data-toggle="dropdown"
-              aria-haspopup="true" aria-expanded="false">Python</a>
-            <div class="dropdown-menu" aria-labelledby="pythonDropdown">
-              <a class="dropdown-item" href="#">Basics</a>
-              <a class="dropdown-item" href="#">Advanced</a>
-              <a class="dropdown-item" href="#">AI</a>
-            </div>
-          </li>
-          
-          <!-- C Dropdown -->
-          <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle" href="#" id="cDropdown" data-toggle="dropdown"
-              aria-haspopup="true" aria-expanded="false">C</a>
-            <div class="dropdown-menu" aria-labelledby="cDropdown">
-              <a class="dropdown-item" href="#">Basics</a>
-              <a class="dropdown-item" href="#">Advanced</a>
-              <a class="dropdown-item" href="#">Controllers</a>
-            </div>
-          </li>
+          {% endfor %}
         </ul>
 
         <!-- RIGHT: Search and Login/Profile -->
