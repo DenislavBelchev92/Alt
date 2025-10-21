@@ -2,61 +2,391 @@
   subgroups:
     - name: Basics
       skills:
-        - Command Line
-        - File System
-        - User Management
-        - Package Management
+        - skill: Terminal Commands
+          lessons:
+            - "Introduction to Terminal"
+            - "Basic Commands: ls, cd, pwd"
+            - "Working with Files: cp, mv, rm"
+            - "Getting Help: man and --help"
+        - skill: File and Folder Navigation
+          lessons:
+            - "Understanding File Paths"
+            - "Moving Between Directories"
+            - "Creating Folders with mkdir"
+            - "Finding Files and Folders"
+        - skill: Creating and Editing Files
+          lessons:
+            - "Creating Files with touch"
+            - "Text Editors: nano and vim"
+            - "Viewing Files: cat, less, more"
+            - "Editing Configuration Files"
+        - skill: Installing Programs
+          lessons:
+            - "Package Managers Explained"
+            - "Installing with apt/yum"
+            - "Updating Your System"
+            - "Removing Unused Programs"
     - name: Advanced
       skills:
-        - Shell Scripting
-        - System Administration
-        - Network Configuration
-        - Performance Tuning
-    - name: Ethical Hacking
+        - skill: Writing Simple Scripts
+          lessons:
+            - "Introduction to Bash Scripting"
+            - "Variables and User Input"
+            - "Loops and Conditions"
+            - "Creating Your First Automation"
+        - skill: Setting Up Servers
+          lessons:
+            - "What is a Server?"
+            - "Installing Web Server Software"
+            - "Basic Server Configuration"
+            - "Making Your Site Available"
+        - skill: Network Basics
+          lessons:
+            - "How Networks Work"
+            - "IP Addresses and Domains"
+            - "Connecting to Other Computers"
+            - "Troubleshooting Network Issues"
+        - skill: System Monitoring
+          lessons:
+            - "Checking System Performance"
+            - "Monitoring Disk Usage"
+            - "Process Management"
+            - "System Logs and Debugging"
+    - name: Cybersecurity
       skills:
-        - Penetration Testing
-        - Vulnerability Assessment
-        - Network Security
-        - Digital Forensics
+        - skill: Password Security
+          lessons:
+            - "Creating Strong Passwords"
+            - "Password Managers"
+            - "Two-Factor Authentication"
+            - "Recognizing Password Scams"
+        - skill: Safe Browsing
+          lessons:
+            - "Identifying Suspicious Websites"
+            - "Understanding HTTPS"
+            - "Browser Security Settings"
+            - "Avoiding Malicious Downloads"
+        - skill: Network Protection
+          lessons:
+            - "Home Network Security"
+            - "Wi-Fi Safety Tips"
+            - "Firewall Basics"
+            - "Public Wi-Fi Precautions"
+        - skill: Basic Hacking Defense
+          lessons:
+            - "Understanding Common Attacks"
+            - "Protecting Personal Information"
+            - "Software Updates and Patches"
+            - "Backup Strategies"
 
 - group: Python
   subgroups:
     - name: Basics
       skills:
-        - Syntax and Variables
-        - Data Types
-        - Control Structures
-        - Functions
+        - skill: Variables and Math
+          lessons:
+            - "Your First Python Program"
+            - "Numbers, Strings, and Variables"
+            - "Math Operations and Calculations"
+            - "Getting User Input"
+        - skill: Lists and Loops
+          lessons:
+            - "Creating and Using Lists"
+            - "Adding and Removing Items"
+            - "For Loops: Repeating Actions"
+            - "While Loops: Conditions"
+        - skill: If Statements
+          lessons:
+            - "Making Decisions in Code"
+            - "Comparing Numbers and Text"
+            - "Multiple Conditions with elif"
+            - "Building a Simple Quiz Game"
+        - skill: Simple Functions
+          lessons:
+            - "What are Functions?"
+            - "Creating Your Own Functions"
+            - "Function Parameters and Arguments"
+            - "Returning Values from Functions"
     - name: Advanced
       skills:
-        - Object-Oriented Programming
-        - Web Development
-        - Database Integration
-        - Testing
-    - name: AI
+        - skill: Classes and Objects
+          lessons:
+            - "Understanding Objects in Real Life"
+            - "Creating Your First Class"
+            - "Class Methods and Attributes"
+            - "Building a Student Management System"
+        - skill: Making Websites
+          lessons:
+            - "Introduction to Web Development"
+            - "HTML Templates with Flask"
+            - "Handling User Forms"
+            - "Creating Your Personal Website"
+        - skill: Working with Databases
+          lessons:
+            - "What are Databases?"
+            - "Storing and Retrieving Data"
+            - "Creating User Registration Systems"
+            - "Building a Simple Contact List"
+        - skill: Creating Games
+          lessons:
+            - "Introduction to Pygame"
+            - "Moving Characters on Screen"
+            - "Collision Detection"
+            - "Building Your First Complete Game"
+
+- group: AI
+  subgroups:
+    - name: Machine Learning
       skills:
-        - Machine Learning
-        - Data Science
-        - Neural Networks
-        - Natural Language Processing
+        - skill: Teaching Computers to Learn
+          lessons:
+            - "What is Artificial Intelligence?"
+            - "Training Simple Models"
+            - "Image Recognition Basics"
+        - skill: Making Predictions
+          lessons:
+            - "Understanding Patterns in Data"
+            - "Weather Prediction Project"
+            - "Sports Score Predictions"
+    - name: Data Science
+      skills:
+        - skill: Analyzing Data
+          lessons:
+            - "Reading Data from Files"
+            - "Creating Charts and Graphs"
+            - "Finding Interesting Patterns"
+        - skill: Data Visualization
+          lessons:
+            - "Creating Interactive Dashboards"
+            - "Building Data Stories"
+            - "Making Infographics with Code"
+    - name: Smart Applications
+      skills:
+        - skill: Chat Bots and Smart Apps
+          lessons:
+            - "Building Your First Chat Bot"
+            - "Natural Language Processing Basics"
+            - "Voice Recognition Projects"
+        - skill: AI Games and Fun
+          lessons:
+            - "Teaching AI to Play Games"
+            - "Creating AI Art"
+            - "Building Smart Home Assistants"
 
 - group: C
   subgroups:
     - name: Basics
       skills:
-        - Syntax and Variables
-        - Pointers
-        - Memory Management
-        - Data Structures
+        - skill: Variables and Math
+          lessons:
+            - "Introduction to C Programming"
+            - "Data Types and Variables"
+            - "Basic Math Operations"
+            - "Input and Output with scanf/printf"
+        - skill: If Statements
+          lessons:
+            - "Making Decisions in C"
+            - "Comparison Operators"
+            - "Logical Operators (AND, OR)"
+            - "Switch Statements for Multiple Choices"
+        - skill: Loops and Arrays
+          lessons:
+            - "For Loops: Counting and Repeating"
+            - "While Loops: Conditional Repetition"
+            - "Introduction to Arrays"
+            - "Processing Lists of Numbers"
+        - skill: Simple Functions
+          lessons:
+            - "Creating Reusable Code Blocks"
+            - "Function Parameters and Return Values"
+            - "Local vs Global Variables"
+            - "Building a Calculator Program"
     - name: Advanced
       skills:
-        - System Programming
-        - File I/O
-        - Multi-threading
-        - Optimization
+        - skill: Pointers (Memory Addresses)
+          lessons:
+            - "Understanding Computer Memory"
+            - "What are Pointers?"
+            - "Using Pointers with Arrays"
+            - "Dynamic Memory Allocation"
+        - skill: File Reading/Writing
+          lessons:
+            - "Opening and Closing Files"
+            - "Reading Text from Files"
+            - "Writing Data to Files"
+            - "Building a Simple Database"
+        - skill: Making Libraries
+          lessons:
+            - "Creating Header Files"
+            - "Organizing Code into Modules"
+            - "Compiling and Linking Libraries"
+            - "Sharing Code with Other Programmers"
+        - skill: Game Programming
+          lessons:
+            - "Console-Based Games"
+            - "Graphics Programming Basics"
+            - "Handling User Input"
+            - "Creating a Complete Adventure Game"
+
+- group: Robotics
+  subgroups:
     - name: Controllers
       skills:
-        - Microcontroller Programming
-        - Embedded Systems
-        - Hardware Interfacing
-        - Real-time Systems
+        - skill: Arduino Basics
+          lessons:
+            - "What is Arduino and Why Use It?"
+            - "Setting Up Your First Circuit"
+            - "Blinking LEDs and Digital Output"
+            - "Reading Buttons and Digital Input"
+        - skill: Raspberry Pi
+          lessons:
+            - "Introduction to Single-Board Computers"
+            - "Setting Up Raspberry Pi OS"
+            - "GPIO Pins and Basic Electronics"
+            - "Programming with Python on Pi"
+        - skill: Micro:bit Programming
+          lessons:
+            - "Getting Started with Micro:bit"
+            - "Block-Based Programming"
+            - "Using Built-in Sensors"
+            - "Wireless Communication Between Devices"
+        - skill: Sensor Reading
+          lessons:
+            - "Understanding Different Sensor Types"
+            - "Temperature and Humidity Sensors"
+            - "Motion and Distance Sensors"
+            - "Light and Sound Sensors"
+    - name: Automation
+      skills:
+        - skill: Smart Home Projects
+          lessons:
+            - "Introduction to Home Automation"
+            - "Controlling Lights with Smartphones"
+            - "Automated Door Locks"
+            - "Smart Security Camera Systems"
+        - skill: Automatic Watering Systems
+          lessons:
+            - "Understanding Plant Watering Needs"
+            - "Soil Moisture Sensor Setup"
+            - "Programming Watering Schedules"
+            - "Building a Complete Garden System"
+        - skill: Light Controllers
+          lessons:
+            - "Basic LED Control Circuits"
+            - "RGB Color Mixing"
+            - "Motion-Activated Lighting"
+            - "Sunrise/Sunset Simulation"
+        - skill: Temperature Monitoring
+          lessons:
+            - "Digital Temperature Sensors"
+            - "Data Logging and Storage"
+            - "Alert Systems for Temperature Changes"
+            - "Multi-Room Temperature Networks"
+    - name: Fun Projects
+      skills:
+        - skill: Robot Cars
+          lessons:
+            - "Building Your First Wheeled Robot"
+            - "Motor Control and Movement"
+            - "Obstacle Avoidance Systems"
+            - "Remote Control via Smartphone"
+        - skill: LED Light Shows
+          lessons:
+            - "Creating Patterns with LEDs"
+            - "Music-Synchronized Light Shows"
+            - "Wearable LED Projects"
+            - "Large-Scale Light Displays"
+        - skill: Voice-Controlled Devices
+          lessons:
+            - "Speech Recognition Basics"
+            - "Building Voice-Activated Switches"
+            - "Creating Your Own Smart Speaker"
+            - "Multi-Command Voice Systems"
+        - skill: Game Controllers
+          lessons:
+            - "Understanding Game Input Systems"
+            - "Building Custom Game Controllers"
+            - "Gesture-Based Game Control"
+
+- group: Math
+  subgroups:
+    - name: Practical Math
+      skills:
+        - skill: Money and Shopping
+          lessons:
+            - "Planning a Budget for a School Event"
+            - "Calculating Best Deals and Discounts"
+            - "Managing a Small Business Project"
+        - skill: Measuring and Building
+          lessons:
+            - "Designing Your Dream Room"
+            - "Building a Garden Box with Exact Measurements"
+            - "Creating Scale Models of Famous Buildings"
+        - skill: Data and Graphs
+          lessons:
+            - "Surveying Your School: Collecting Real Data"
+            - "Creating Charts from Sports Statistics"
+            - "Analyzing Weather Patterns in Your City"
+    - name: Math in Technology
+      skills:
+        - skill: Code and Algorithms
+          lessons:
+            - "Creating Math Games in Scratch"
+            - "Building a Calculator App"
+            - "Programming Geometric Art"
+        - skill: 3D and Graphics
+          lessons:
+            - "Designing 3D Objects with Math"
+            - "Creating Animations Using Functions"
+            - "Building Virtual Reality Worlds"
+    - name: Fun Math Projects
+      skills:
+        - skill: Math Magic and Puzzles
+          lessons:
+            - "Mind-Reading Number Tricks"
+            - "Creating Your Own Escape Room"
+            - "Mathematical Art and Patterns"
+        - skill: Sports and Games Math
+          lessons:
+            - "Probability in Card Games"
+            - "Statistics in Your Favorite Sport"
+            - "Geometry in Video Game Design"
+
+- group: Physics
+  subgroups:
+    - name: Forces and Motion
+      skills:
+        - skill: Building and Testing
+          lessons:
+            - "Paper Airplane Physics Competition"
+            - "Bridge Building Challenge"
+            - "Rocket Car Design Race"
+        - skill: Simple Machines
+          lessons:
+            - "Creating a Rube Goldberg Machine"
+            - "Building Working Catapults"
+            - "Designing Pulley Systems for Heavy Lifting"
+    - name: Energy and Electricity
+      skills:
+        - skill: Solar and Wind Power
+          lessons:
+            - "Building a Solar-Powered Car"
+            - "Creating a Wind Turbine Generator"
+            - "Designing an Off-Grid Phone Charger"
+        - skill: Circuits and Electronics
+          lessons:
+            - "LED Light Show Circuit"
+            - "Building a Simple Radio"
+            - "Creating Electronic Musical Instruments"
+    - name: Waves and Light
+      skills:
+        - skill: Sound Experiments
+          lessons:
+            - "Building Musical Instruments from Scratch"
+            - "Sound Wave Visualization Projects"
+            - "Creating Echo and Reverb Effects"
+        - skill: Light and Optics
+          lessons:
+            - "Building Your Own Telescope"
+            - "Creating Rainbow Light Experiments"
+            - "Photography with Homemade Camera"

@@ -1,0 +1,278 @@
+{% extends "base.html" %}
+
+{% block title %}Book Private Lesson - Alt Project{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Header Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'index' %}">Home</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Book Private Lesson</li>
+                </ol>
+            </nav>
+            
+            <div class="text-center mb-4">
+                <h1 class="display-4 text-primary">
+                    <i class="fas fa-graduation-cap mr-3"></i>
+                    Book Your Private Lesson
+                </h1>
+                <p class="lead text-muted">Get personalized 1-on-1 tutoring tailored to your learning needs</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Booking Form -->
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-lg border-0">
+                <div class="card-header bg-primary text-white text-center">
+                    <h4 class="mb-0">
+                        <i class="fas fa-calendar-alt mr-2"></i>
+                        Lesson Booking Form
+                    </h4>
+                </div>
+                <div class="card-body p-4">
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+
+                    <form method="post" action="{% url 'private_lesson' %}">
+                        {% csrf_token %}
+                        
+                        <!-- Personal Information -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="student_name" class="font-weight-bold">
+                                        <i class="fas fa-user mr-1"></i>Student Name
+                                    </label>
+                                    <input type="text" class="form-control" id="student_name" name="student_name" 
+                                           placeholder="Enter student's full name" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="student_age" class="font-weight-bold">
+                                        <i class="fas fa-birthday-cake mr-1"></i>Age / Grade
+                                    </label>
+                                    <input type="text" class="form-control" id="student_age" name="student_age" 
+                                           placeholder="e.g., 12 years old / 7th grade" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="parent_name" class="font-weight-bold">
+                                        <i class="fas fa-user-tie mr-1"></i>Parent/Guardian Name
+                                    </label>
+                                    <input type="text" class="form-control" id="parent_name" name="parent_name" 
+                                           placeholder="Enter parent/guardian name" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="contact_email" class="font-weight-bold">
+                                        <i class="fas fa-envelope mr-1"></i>Contact Email
+                                    </label>
+                                    <input type="email" class="form-control" id="contact_email" name="contact_email" 
+                                           placeholder="your.email@example.com" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="phone" class="font-weight-bold">
+                                <i class="fas fa-phone mr-1"></i>Phone Number
+                            </label>
+                            <input type="tel" class="form-control" id="phone" name="phone" 
+                                   placeholder="(123) 456-7890" required>
+                        </div>
+
+                        <!-- Skill Selection -->
+                        <div class="form-group">
+                            <label for="{{ form.skill.id_for_label }}" class="font-weight-bold">
+                                <i class="fas fa-cogs mr-1"></i>Choose Your Skill
+                            </label>
+                            {{ form.skill }}
+                            <small class="form-text text-muted">Select the main skill you want to focus on during the lesson</small>
+                        </div>
+
+                        <!-- Experience Level -->
+                        <div class="form-group">
+                            <label for="experience_level" class="font-weight-bold">
+                                <i class="fas fa-chart-line mr-1"></i>Experience Level
+                            </label>
+                            <select class="form-control" id="experience_level" name="experience_level" required>
+                                <option value="">Select experience level...</option>
+                                <option value="beginner">Complete Beginner</option>
+                                <option value="some_experience">Some Experience</option>
+                                <option value="intermediate">Intermediate</option>
+                                <option value="advanced">Advanced</option>
+                            </select>
+                        </div>
+
+                        <!-- Lesson Details -->
+                        <div class="form-group">
+                            <label for="message" class="font-weight-bold">
+                                <i class="fas fa-comment-alt mr-1"></i>Special Requests & Goals
+                            </label>
+                            <textarea class="form-control" id="message" name="message" rows="5" 
+                                      placeholder="Tell us about:
+• What specific topics you want to learn
+• Any previous experience or challenges
+• Your learning goals
+• Preferred lesson time/day
+• Any special requirements or questions"></textarea>
+                            <small class="form-text text-muted">The more details you provide, the better we can customize your lesson!</small>
+                        </div>
+
+                        <!-- Preferred Schedule -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="preferred_day" class="font-weight-bold">
+                                        <i class="fas fa-calendar mr-1"></i>Preferred Day
+                                    </label>
+                                    <select class="form-control" id="preferred_day" name="preferred_day">
+                                        <option value="">Any day works</option>
+                                        <option value="weekdays">Weekdays (Mon-Fri)</option>
+                                        <option value="weekends">Weekends (Sat-Sun)</option>
+                                        <option value="specific">Specific day (mention in message)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="preferred_time" class="font-weight-bold">
+                                        <i class="fas fa-clock mr-1"></i>Preferred Time
+                                    </label>
+                                    <select class="form-control" id="preferred_time" name="preferred_time">
+                                        <option value="">Any time works</option>
+                                        <option value="morning">Morning (9AM - 12PM)</option>
+                                        <option value="afternoon">Afternoon (12PM - 5PM)</option>
+                                        <option value="evening">Evening (5PM - 8PM)</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <div class="text-center mt-4">
+                            <button type="submit" class="btn btn-primary btn-lg px-5 py-3">
+                                <i class="fas fa-paper-plane mr-2"></i>
+                                Send Booking Request
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Information Cards -->
+    <div class="row mt-5">
+        <div class="col-md-4 mb-3">
+            <div class="card border-info">
+                <div class="card-body text-center">
+                    <i class="fas fa-user-graduate fa-2x text-info mb-2"></i>
+                    <h5 class="card-title">Personalized Learning</h5>
+                    <p class="card-text small">Lessons tailored to your skill level and learning style</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card border-success">
+                <div class="card-body text-center">
+                    <i class="fas fa-clock fa-2x text-success mb-2"></i>
+                    <h5 class="card-title">Flexible Schedule</h5>
+                    <p class="card-text small">Choose times that work best for you</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card border-warning">
+                <div class="card-body text-center">
+                    <i class="fas fa-project-diagram fa-2x text-warning mb-2"></i>
+                    <h5 class="card-title">Hands-on Projects</h5>
+                    <p class="card-text small">Build real projects while you learn</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.btn-primary {
+    background: linear-gradient(45deg, #007bff, #0056b3);
+    border: none;
+    border-radius: 50px;
+    transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 15px rgba(0, 123, 255, 0.3);
+}
+
+.card {
+    transition: all 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-3px);
+}
+
+.form-control:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.breadcrumb-item a {
+    text-decoration: none;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Add some interactivity to the form
+    const skillSelect = document.getElementById('{{ form.skill.id_for_label }}');
+    const messageTextarea = document.getElementById('message');
+    
+    if (skillSelect) {
+        skillSelect.addEventListener('change', function() {
+            const selectedSkill = this.options[this.selectedIndex].text;
+            if (selectedSkill && selectedSkill !== 'Select a skill...') {
+                // Auto-suggest content for the message field
+                const currentMessage = messageTextarea.value;
+                if (!currentMessage.includes(selectedSkill)) {
+                    const suggestion = `I'm interested in learning ${selectedSkill}. `;
+                    messageTextarea.value = suggestion + currentMessage;
+                }
+            }
+        });
+    }
+    
+    // Form validation feedback
+    const form = document.querySelector('form');
+    form.addEventListener('submit', function() {
+        const submitBtn = form.querySelector('button[type="submit"]');
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Sending Request...';
+        submitBtn.disabled = true;
+    });
+});
+</script>
+{% endblock %}

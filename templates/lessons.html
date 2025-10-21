@@ -1,0 +1,228 @@
+{% extends "base.html" %}
+
+{% block title %}{{ skill_name }} Lessons - Alt Project{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- Header Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'index' %}">Home</a></li>
+                    <li class="breadcrumb-item">{{ group_name }}</li>
+                    <li class="breadcrumb-item">{{ subgroup_name }}</li>
+                    <li class="breadcrumb-item active" aria-current="page">{{ skill_name }}</li>
+                </ol>
+            </nav>
+            
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="display-4 mb-2">{{ skill_name }}</h1>
+                    <p class="lead text-muted">{{ group_name }} > {{ subgroup_name }}</p>
+                </div>
+                <div class="text-right">
+                    <span class="badge badge-primary badge-lg">{{ lessons|length }} Lessons</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lessons Table -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="card-title mb-0">
+                        <i class="fas fa-graduation-cap mr-2"></i>Course Lessons
+                    </h4>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th scope="col" width="10%">#</th>
+                                    <th scope="col" width="60%">Lesson Title</th>
+                                    <th scope="col" width="15%">Duration</th>
+                                    <th scope="col" width="15%">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for lesson in lessons %}
+                                <tr class="lesson-row" data-lesson="{{ lesson }}">
+                                    <td class="align-middle">
+                                        <span class="badge badge-secondary lesson-number">{{ forloop.counter }}</span>
+                                    </td>
+                                    <td class="align-middle">
+                                        <div class="lesson-info">
+                                            <h6 class="lesson-title mb-1">{{ lesson }}</h6>
+                                            <small class="text-muted">Interactive hands-on lesson</small>
+                                        </div>
+                                    </td>
+                                    <td class="align-middle">
+                                        <span class="text-muted">
+                                            <i class="fas fa-clock mr-1"></i>45 min
+                                        </span>
+                                    </td>
+                                    <td class="align-middle">
+                                        {% if user.is_authenticated %}
+                                        <button class="btn btn-outline-success btn-sm start-lesson" 
+                                                data-lesson="{{ lesson }}" 
+                                                data-skill="{{ skill_name }}">
+                                            <i class="fas fa-play mr-1"></i>Start
+                                        </button>
+                                        {% else %}
+                                        <a href="{% url 'login' %}" class="btn btn-outline-primary btn-sm">
+                                            <i class="fas fa-sign-in-alt mr-1"></i>Login to Start
+                                        </a>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center py-5 text-muted">
+                                        <i class="fas fa-book-open fa-3x mb-3"></i>
+                                        <h5>No lessons available</h5>
+                                        <p>Lessons for this skill are coming soon!</p>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                {% if lessons %}
+                <div class="card-footer bg-light">
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle mr-1"></i>
+                                Complete lessons in order for the best learning experience
+                            </small>
+                        </div>
+                        <div class="col-md-6 text-md-right">
+                            {% if user.is_authenticated %}
+                            <a href="{% url 'profile' %}" class="btn btn-primary btn-sm">
+                                <i class="fas fa-user mr-1"></i>View My Progress
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Additional Info Section -->
+    {% if lessons %}
+    <div class="row mt-4">
+        <div class="col-md-4">
+            <div class="card border-info">
+                <div class="card-body text-center">
+                    <i class="fas fa-target fa-2x text-info mb-2"></i>
+                    <h5 class="card-title">Learning Goals</h5>
+                    <p class="card-text small text-muted">Master {{ skill_name }} through hands-on practice and real projects</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-success">
+                <div class="card-body text-center">
+                    <i class="fas fa-certificate fa-2x text-success mb-2"></i>
+                    <h5 class="card-title">Certification</h5>
+                    <p class="card-text small text-muted">Earn a certificate upon completing all {{ lessons|length }} lessons</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-warning">
+                <div class="card-body text-center">
+                    <i class="fas fa-users fa-2x text-warning mb-2"></i>
+                    <h5 class="card-title">Community</h5>
+                    <p class="card-text small text-muted">Join fellow students learning {{ group_name }} skills</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.lesson-row {
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.lesson-row:hover {
+    background-color: #f8f9fa;
+    transform: translateX(5px);
+}
+
+.lesson-number {
+    font-size: 14px;
+    padding: 8px 12px;
+}
+
+.lesson-title {
+    color: #333;
+    font-weight: 600;
+}
+
+.start-lesson {
+    transition: all 0.2s ease;
+}
+
+.start-lesson:hover {
+    transform: scale(1.05);
+}
+
+.badge-lg {
+    font-size: 16px;
+    padding: 10px 15px;
+}
+
+.breadcrumb-item a {
+    text-decoration: none;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle lesson start buttons
+    document.querySelectorAll('.start-lesson').forEach(function(button) {
+        button.addEventListener('click', function() {
+            const lessonName = this.dataset.lesson;
+            const skillName = this.dataset.skill;
+            
+            // Change button to loading state
+            this.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Starting...';
+            this.disabled = true;
+            
+            // Simulate lesson start (you can replace this with actual functionality)
+            setTimeout(() => {
+                this.innerHTML = '<i class="fas fa-check mr-1"></i>Started!';
+                this.classList.remove('btn-outline-success');
+                this.classList.add('btn-success');
+                
+                // You can add actual lesson tracking here
+                console.log(`Started lesson: ${lessonName} for skill: ${skillName}`);
+            }, 1000);
+        });
+    });
+    
+    // Make table rows clickable
+    document.querySelectorAll('.lesson-row').forEach(function(row) {
+        row.addEventListener('click', function() {
+            const startButton = this.querySelector('.start-lesson');
+            if (startButton && !startButton.disabled) {
+                startButton.click();
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

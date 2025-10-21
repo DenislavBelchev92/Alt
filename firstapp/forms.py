@@ -22,13 +22,27 @@ def get_skill_choices():
         group_name = group['group']
         for subgroup in group['subgroups']:
             subgroup_name = subgroup['name']
-            for skill in subgroup['skills']:
+            for skill_item in subgroup['skills']:
+                skill_name = skill_item['skill']
                 # Create a unique identifier for each skill
-                skill_key = f"{group_name}|{subgroup_name}|{skill}"
-                skill_label = f"{group_name} > {subgroup_name} > {skill}"
+                skill_key = f"{group_name}|{subgroup_name}|{skill_name}"
+                skill_label = f"{group_name} > {subgroup_name} > {skill_name}"
                 choices.append((skill_key, skill_label))
     
     return choices
+
+def get_skill_lessons(group_name, subgroup_name, skill_name):
+    """Get lessons for a specific skill from YAML file"""
+    skills_data = load_skills_yaml()
+    
+    for group in skills_data:
+        if group['group'] == group_name:
+            for subgroup in group['subgroups']:
+                if subgroup['name'] == subgroup_name:
+                    for skill_item in subgroup['skills']:
+                        if skill_item['skill'] == skill_name:
+                            return skill_item.get('lessons', [])
+    return []
 
 class SkillForm(forms.Form):
     skill = forms.ChoiceField(
@@ -73,3 +87,16 @@ class ProfileForm(forms.ModelForm):
         widgets = {
             'profile_picture': forms.FileInput(attrs={'id': 'profile-picture-input', 'style': 'display:none;'}),
         }
+
+class PrivateLessonForm(forms.Form):
+    skill = forms.ChoiceField(
+        choices=[],
+        widget=forms.Select(attrs={'class': 'form-control'}),
+        label='Choose Your Skill'
+    )
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Get all skills from YAML for dropdown
+        skill_choices = get_skill_choices()
+        self.fields['skill'].choices = [('', 'Select a skill...')] + skill_choices

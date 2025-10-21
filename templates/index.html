@@ -4,8 +4,77 @@
 {% block title %}Home | Alt Project{% endblock %}
 
 {% block content %}
-  <div>
-    <h1>{{ message }}</h1>
-    <p class="lead">{{ extra_message }}</p>
+<div class="container-fluid">
+  <!-- Hero Section -->
+  <div class="row justify-content-center text-center mb-5">
+    <div class="col-lg-8">
+      <h1 class="display-4 font-weight-bold text-primary">{{ message }}</h1>
+      <p class="lead text-muted mb-4">{{ extra_message }}</p>
+      
+      <!-- Big Private Lesson Button -->
+      <div class="mt-4 mb-5">
+        <a href="{% url 'private_lesson' %}" class="btn btn-primary btn-lg px-5 py-3 shadow-lg">
+          <i class="fas fa-graduation-cap mr-3"></i>
+          <span class="font-weight-bold">Book Private Lesson</span>
+          <i class="fas fa-arrow-right ml-3"></i>
+        </a>
+        <p class="text-muted mt-3">Get personalized 1-on-1 tutoring for any skill</p>
+      </div>
+    </div>
   </div>
+
+  <!-- Features Section -->
+  <div class="row text-center">
+    <div class="col-md-4 mb-4">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body">
+          <i class="fas fa-laptop-code fa-3x text-primary mb-3"></i>
+          <h5 class="card-title">Programming Skills</h5>
+          <p class="card-text text-muted">Learn Python, C, and Linux through hands-on projects</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4 mb-4">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body">
+          <i class="fas fa-robot fa-3x text-success mb-3"></i>
+          <h5 class="card-title">Robotics & AI</h5>
+          <p class="card-text text-muted">Build robots, create smart apps, and explore artificial intelligence</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4 mb-4">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body">
+          <i class="fas fa-calculator fa-3x text-info mb-3"></i>
+          <h5 class="card-title">Math & Physics</h5>
+          <p class="card-text text-muted">Practical experiments and real-world problem solving</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.btn-primary {
+  background: linear-gradient(45deg, #007bff, #0056b3);
+  border: none;
+  border-radius: 50px;
+  transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 20px rgba(0, 123, 255, 0.3);
+}
+
+.card {
+  transition: all 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+}
+</style>
 {% endblock %}

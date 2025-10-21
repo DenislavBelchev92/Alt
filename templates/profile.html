@@ -1,0 +1,332 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}My Profile - Alt Project{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- Profile Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'index' %}">Home</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">My Profile</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Profile Card -->
+    <div class="row">
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow-lg border-0 profile-card">
+                <div class="card-body text-center p-4">
+                    <!-- Avatar Section -->
+                    <div class="avatar-container mb-3" onclick="toggleAvatar()">
+                        {% if profile and profile.profile_picture %}
+                            <img id="profile-avatar" src="{% static 'images/profile_avatar.jpg' %}" 
+                                 alt="Default Avatar" class="profile-avatar mb-3">
+                            <img id="profile-picture" src="{{ profile.profile_picture.url }}" 
+                                 alt="User Photo" class="profile-picture mb-3" style="display: none;">
+                        {% else %}
+                            <img id="profile-avatar" src="{% static 'images/profile_avatar.jpg' %}" 
+                                 alt="Default Avatar" class="profile-avatar mb-3">
+                        {% endif %}
+                        <div class="avatar-overlay">
+                            <i class="fas fa-camera"></i>
+                            <small>Click to switch</small>
+                        </div>
+                    </div>
+                    
+                    <!-- User Info -->
+                    <h3 class="card-title text-primary mb-1">
+                        {% if profile %}
+                            {{ profile.name|default:user.username }} {{ profile.sur_name|default:"" }}
+                        {% else %}
+                            {{ user.username }}
+                        {% endif %}
+                    </h3>
+                    <p class="text-muted mb-2">@{{ user.username }}</p>
+                    
+                    {% if profile %}
+                        {% if profile.age %}
+                            <p class="mb-1"><i class="fas fa-birthday-cake mr-2 text-info"></i>{{ profile.age }} years old</p>
+                        {% endif %}
+                        {% if profile.city and profile.country %}
+                            <p class="mb-3"><i class="fas fa-map-marker-alt mr-2 text-danger"></i>{{ profile.city }}, {{ profile.country }}</p>
+                        {% endif %}
+                    {% endif %}
+                    
+                    <!-- Stats -->
+                    <div class="row text-center mb-3">
+                        <div class="col-4">
+                            <div class="stat-box">
+                                <h4 class="text-primary mb-0">{{ user_skills.count }}</h4>
+                                <small class="text-muted">Skills</small>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="stat-box">
+                                <h4 class="text-success mb-0">{{ completed_courses }}</h4>
+                                <small class="text-muted">Completed</small>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="stat-box">
+                                <h4 class="text-warning mb-0">{{ organized_skills|length }}</h4>
+                                <small class="text-muted">Categories</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Action Buttons -->
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'profile_edit' %}" class="btn btn-primary">
+                            <i class="fas fa-edit mr-2"></i>Edit Profile
+                        </a>
+                        {% if not can_modify_skills %}
+                            <div class="alert alert-info p-2 mb-0">
+                                <small><i class="fas fa-info-circle mr-1"></i>Complete a course to unlock skill management</small>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Skills Section -->
+        <div class="col-lg-8">
+            <div class="card shadow-lg border-0">
+                <div class="card-header bg-gradient-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-trophy mr-2"></i>My Learning Journey
+                    </h4>
+                </div>
+                <div class="card-body p-0">
+                    {% if user_skills %}
+                        {% for group, subgroups in organized_skills.items %}
+                            <div class="skill-group">
+                                <div class="group-header p-3 bg-light border-bottom">
+                                    <h5 class="mb-0 text-primary">
+                                        <i class="fas fa-folder-open mr-2"></i>{{ group }}
+                                    </h5>
+                                </div>
+                                {% for subgroup, skills in subgroups.items %}
+                                    <div class="subgroup-section p-3 border-bottom">
+                                        <h6 class="text-secondary mb-3">
+                                            <i class="fas fa-layer-group mr-2"></i>{{ subgroup }}
+                                        </h6>
+                                        <div class="skills-grid">
+                                            {% for skill in skills %}
+                                                <div class="skill-item">
+                                                    <div class="skill-card p-3 border rounded">
+                                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                                            <h6 class="skill-name mb-0">{{ skill.name.name }}</h6>
+                                                            <span class="badge badge-{% if skill.level >= 80 %}success{% elif skill.level >= 60 %}warning{% else %}secondary{% endif %}">
+                                                                {{ skill.level }}%
+                                                            </span>
+                                                        </div>
+                                                        
+                                                        <!-- Progress Bar -->
+                                                        <div class="progress mb-2" style="height: 6px;">
+                                                            <div class="progress-bar bg-{% if skill.level >= 80 %}success{% elif skill.level >= 60 %}warning{% else %}secondary{% endif %}" 
+                                                                 role="progressbar" 
+                                                                 style="width: {{ skill.level }}%" 
+                                                                 aria-valuenow="{{ skill.level }}" 
+                                                                 aria-valuemin="0" 
+                                                                 aria-valuemax="100">
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <small class="text-muted">
+                                                            {% if skill.level >= 80 %}
+                                                                <i class="fas fa-trophy text-success mr-1"></i>Expert Level
+                                                            {% elif skill.level >= 60 %}
+                                                                <i class="fas fa-medal text-warning mr-1"></i>Intermediate
+                                                            {% elif skill.level >= 30 %}
+                                                                <i class="fas fa-star text-info mr-1"></i>Learning
+                                                            {% else %}
+                                                                <i class="fas fa-seedling text-secondary mr-1"></i>Beginner
+                                                            {% endif %}
+                                                        </small>
+                                                        
+                                                        <!-- View Lessons Button -->
+                                                        <div class="mt-2">
+                                                            <a href="{% url 'lessons' group subgroup skill.name.name %}" 
+                                                               class="btn btn-outline-primary btn-sm btn-block">
+                                                                <i class="fas fa-book mr-1"></i>View Lessons
+                                                            </a>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-graduation-cap fa-4x text-muted mb-3"></i>
+                            <h4 class="text-muted">Start Your Learning Journey</h4>
+                            <p class="text-muted mb-4">You haven't added any skills yet. Explore our courses and start learning!</p>
+                            <a href="{% url 'index' %}" class="btn btn-primary">
+                                <i class="fas fa-plus mr-2"></i>Explore Skills
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+                
+                {% if user_skills %}
+                <div class="card-footer bg-light text-center">
+                    <small class="text-muted">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        Skill management is {% if can_modify_skills %}enabled{% else %}locked until you complete a course{% endif %}
+                    </small>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.profile-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.profile-card .card-body {
+    background: white;
+    border-radius: 15px;
+    margin: 15px;
+    color: #333;
+}
+
+.avatar-container {
+    position: relative;
+    cursor: pointer;
+    display: inline-block;
+}
+
+.profile-avatar, .profile-picture {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 4px solid #007bff;
+    transition: all 0.3s ease;
+}
+
+.avatar-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 123, 255, 0.8);
+    border-radius: 50%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    color: white;
+    margin-bottom: 1rem;
+}
+
+.avatar-container:hover .avatar-overlay {
+    opacity: 1;
+}
+
+.stat-box {
+    padding: 10px;
+}
+
+.bg-gradient-primary {
+    background: linear-gradient(45deg, #007bff, #0056b3);
+}
+
+.skill-group:last-child .subgroup-section:last-child {
+    border-bottom: none !important;
+}
+
+.skills-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 15px;
+}
+
+.skill-card {
+    background: #f8f9fa;
+    transition: all 0.3s ease;
+    border: 1px solid #e9ecef !important;
+}
+
+.skill-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+    background: white;
+}
+
+.skill-name {
+    color: #495057;
+    font-weight: 600;
+}
+
+.breadcrumb-item a {
+    text-decoration: none;
+}
+
+.btn-outline-primary:hover {
+    transform: scale(1.02);
+}
+
+@media (max-width: 768px) {
+    .skills-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleAvatar() {
+    const avatar = document.getElementById('profile-avatar');
+    const picture = document.getElementById('profile-picture');
+    
+    if (picture) {
+        if (avatar.style.display === 'none') {
+            avatar.style.display = 'block';
+            picture.style.display = 'none';
+        } else {
+            avatar.style.display = 'none';
+            picture.style.display = 'block';
+        }
+    }
+}
+
+// Add smooth scrolling for long skill lists
+document.addEventListener('DOMContentLoaded', function() {
+    // Animate skill cards on scroll
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+                entry.target.style.opacity = '1';
+                entry.target.style.transform = 'translateY(0)';
+            }
+        });
+    });
+
+    document.querySelectorAll('.skill-card').forEach((card) => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(20px)';
+        card.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+        observer.observe(card);
+    });
+});
+</script>
+{% endblock %}

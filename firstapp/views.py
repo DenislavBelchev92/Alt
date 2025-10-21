@@ -28,6 +28,67 @@ def index(request):
         'message': message,
         'extra_message': extra_message})
 
+def lessons(request, group_name, subgroup_name, skill_name):
+    """Display lessons for a specific skill"""
+    from .forms import get_skill_lessons
+    from urllib.parse import unquote
+    
+    # URL decode the parameters
+    group_name = unquote(group_name)
+    subgroup_name = unquote(subgroup_name)
+    skill_name = unquote(skill_name)
+    
+    # Get lessons from YAML
+    lessons_list = get_skill_lessons(group_name, subgroup_name, skill_name)
+    
+    context = {
+        'group_name': group_name,
+        'subgroup_name': subgroup_name,
+        'skill_name': skill_name,
+        'lessons': lessons_list,
+    }
+    
+    return render(request, 'lessons.html', context)
+
+def private_lesson(request):
+    """Handle private lesson booking requests"""
+    from .forms import PrivateLessonForm
+    
+    if request.method == 'POST':
+        form = PrivateLessonForm(request.POST)
+        
+        # Get form data
+        student_name = request.POST.get('student_name', '')
+        student_age = request.POST.get('student_age', '')
+        parent_name = request.POST.get('parent_name', '')
+        contact_email = request.POST.get('contact_email', '')
+        phone = request.POST.get('phone', '')
+        experience_level = request.POST.get('experience_level', '')
+        message = request.POST.get('message', '')
+        preferred_day = request.POST.get('preferred_day', '')
+        preferred_time = request.POST.get('preferred_time', '')
+        
+        if form.is_valid():
+            selected_skill = form.cleaned_data['skill']
+            
+            # Here you could save to database, send email, etc.
+            # For now, just show a success message
+            
+            skill_display = selected_skill.split('|')[-1] if selected_skill else "Selected Skill"
+            
+            messages.success(request, 
+                f"Thank you {parent_name}! We've received your private lesson request for {student_name} "
+                f"in {skill_display}. We'll contact you at {contact_email} within 24 hours to schedule the lesson.")
+            
+            # Redirect to avoid re-submission on refresh
+            return redirect('private_lesson')
+        else:
+            messages.error(request, "Please correct the errors below and try again.")
+    else:
+        form = PrivateLessonForm()
+    
+    return render(request, 'private_lesson.html', {'form': form})
+
 def register(request):
     if request.method == "POST":
         username = request.POST.get('username')
@@ -48,9 +109,10 @@ def register(request):
         auth_login(request, user)
 
         messages.success(request, "Registration successful. You can now log in.")
-        return redirect('login')
+        return redirect('index')
 
-    return render(request, 'register.html', {\
+    return render(request, "register.html", {
+        'show_navbar': False,
         'show_footer' : False
     })
 
@@ -62,7 +124,17 @@ def login(request):
         if user is not None:
             auth_login(request, user)
             messages.success(request, f"Welcome back, {user.username}!")        
-            return redirect('profile_skills')
+            return redirect('profile')
+
+def login(request):
+    if request.method == "POST":
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
+            auth_login(request, user)
+            messages.success(request, f"Welcome back, {user.username}!")        
+            return redirect('profile')
         else:
             messages.error(request, "Invalid username or password.")
             return render(request, "login.html")
@@ -81,14 +153,15 @@ def profile_edit(request):
         form = ProfileForm(request.POST, request.FILES, instance=profile)
         if form.is_valid():
             form.save()
-            return redirect('profile_skills')  # assuming 'profile' is your profile view name
+            return redirect('profile')
     else:
         form = ProfileForm(instance=profile)
     return render(request, 'profile_edit.html', {'form': form, 'profile': profile})
 
 @login_required
-def profile_skills(request):
-    user_skills = request.user.skill.all().select_related('name__subgroup__group')
+def profile(request):
+    user = request.user
+    user_skills = user.skill.all().select_related('name__subgroup__group')
     
     # Organize skills by group and subgroup for better display
     organized_skills = {}
@@ -103,9 +176,17 @@ def profile_skills(request):
         
         organized_skills[group][subgroup].append(skill)
     
-    return render(request, 'profile_skills.html', {
+    # Check if user has completed courses (for now, we'll use a simple check)
+    # You can modify this logic based on your course completion tracking
+    completed_courses = user_skills.filter(level__gte=80).count()  # Skills with 80+ level considered completed
+    can_modify_skills = completed_courses > 0
+    
+    return render(request, 'profile.html', {
         'organized_skills': organized_skills,
-        'user_skills': user_skills
+        'user_skills': user_skills,
+        'can_modify_skills': can_modify_skills,
+        'completed_courses': completed_courses,
+        'profile': user.profile if hasattr(user, 'profile') else None
     })
 
 @login_required
@@ -123,9 +204,9 @@ def update_skill(request, skill_id):
             skill.level = max(skill.level - 1, 0)
         
         skill.save()
-        messages.success(request, f"Updated {skill.name.name} level to {skill.level}")
+        messages.success(request, f"Updated {skill_name} level to {level}")
     
-    return redirect("profile_skills")
+    return redirect("profile")
 
 @login_required
 def delete_skill(request, skill_id):
@@ -135,7 +216,7 @@ def delete_skill(request, skill_id):
         skill.delete()
         messages.success(request, f"Removed {skill_name} from your skills")
     
-    return redirect("profile_skills")
+    return redirect("profile")
 
 @login_required
 def add_skill(request):
@@ -181,7 +262,7 @@ def add_skill(request):
             )
             
             messages.success(request, f"Successfully added {skill_name} with level {level}!")
-            return redirect('profile_skills')
+            return redirect('profile')
     else:
         form = SkillForm(user=request.user)
     
