@@ -1,8 +1,10 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}{{ skill_name }} Lessons - Alt Project{% endblock %}
 
 {% block content %}
+{% csrf_token %}
 <div class="container-fluid mt-4">
     <!-- Header Section -->
     <div class="row mb-4">
@@ -27,6 +29,36 @@
             </div>
         </div>
     </div>
+
+    <!-- Course Enrollment Section -->
+    {% if user.is_authenticated %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-info" id="course-enrollment-card">
+                <div class="card-body text-center py-4">
+                    <div id="join-course-section">
+                        <h4 class="text-info mb-3">
+                            <i class="fas fa-graduation-cap mr-2"></i>Ready to Learn {{ skill_name }}?
+                        </h4>
+                        <p class="text-muted mb-4">Join this course to unlock all {{ lessons|length }} lessons and start your learning journey!</p>
+                        <button id="join-course-btn" class="btn btn-info btn-lg px-5 py-3">
+                            <i class="fas fa-users mr-2"></i>Join Course
+                        </button>
+                    </div>
+                    <div id="enrolled-section" style="display: none;">
+                        <h4 class="text-success mb-3">
+                            <i class="fas fa-check-circle mr-2"></i>Welcome to the {{ skill_name }} Course!
+                        </h4>
+                        <p class="text-muted mb-3">You're now enrolled! Start any lesson below to begin learning.</p>
+                        <span class="badge badge-success badge-lg">
+                            <i class="fas fa-user-graduate mr-1"></i>Enrolled Student
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 
     <!-- Lessons Table -->
     <div class="row">
@@ -62,19 +94,20 @@
                                     </td>
                                     <td class="align-middle">
                                         <span class="text-muted">
-                                            <i class="fas fa-clock mr-1"></i>45 min
+                                            <i class="fas fa-clock mr-1"></i>60 min
                                         </span>
                                     </td>
                                     <td class="align-middle">
                                         {% if user.is_authenticated %}
                                         <button class="btn btn-outline-success btn-sm start-lesson" 
                                                 data-lesson="{{ lesson }}" 
-                                                data-skill="{{ skill_name }}">
-                                            <i class="fas fa-play mr-1"></i>Start
+                                                data-skill="{{ skill_name }}"
+                                                disabled>
+                                            <i class="fas fa-lock mr-1"></i>Join Course First
                                         </button>
                                         {% else %}
                                         <a href="{% url 'login' %}" class="btn btn-outline-primary btn-sm">
-                                            <i class="fas fa-sign-in-alt mr-1"></i>Login to Start
+                                            <i class="fas fa-sign-in-alt mr-1"></i>Login to Join
                                         </a>
                                         {% endif %}
                                     </td>
@@ -98,7 +131,7 @@
                         <div class="col-md-6">
                             <small class="text-muted">
                                 <i class="fas fa-info-circle mr-1"></i>
-                                Complete lessons in order for the best learning experience
+                                Join each course first, then start lessons. Each lesson is 60 minutes.
                             </small>
                         </div>
                         <div class="col-md-6 text-md-right">
@@ -170,12 +203,44 @@
     font-weight: 600;
 }
 
+#course-enrollment-card {
+    transition: all 0.3s ease;
+}
+
+#join-course-btn {
+    background: linear-gradient(45deg, #17a2b8, #138496);
+    border: none;
+    transition: all 0.3s ease;
+}
+
+#join-course-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 12px rgba(23, 162, 184, 0.4);
+}
+
 .start-lesson {
     transition: all 0.2s ease;
 }
 
-.start-lesson:hover {
+.start-lesson:hover:not(:disabled) {
     transform: scale(1.05);
+}
+
+.start-lesson:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.table-success {
+    background-color: rgba(40, 167, 69, 0.1) !important;
+}
+
+.table-warning {
+    background-color: rgba(255, 193, 7, 0.1) !important;
+}
+
+.table-info {
+    background-color: rgba(23, 162, 184, 0.1) !important;
 }
 
 .badge-lg {
@@ -192,9 +257,351 @@
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Handle lesson start buttons
+    let courseJoined = false;
+    
+    // Handle course join button
+    const joinCourseBtn = document.getElementById('join-course-btn');
+    const joinSection = document.getElementById('join-course-section');
+    const enrolledSection = document.getElementById('enrolled-section');
+    const enrollmentCard = document.getElementById('course-enrollment-card');
+    
+    // Check enrollment status on page load
+    checkEnrollmentStatus();
+    
+    // Poll for status changes every 30 seconds if request is pending
+    let statusPolling = null;
+    
+    function startStatusPolling() {
+        if (statusPolling) {
+            clearInterval(statusPolling);
+        }
+        statusPolling = setInterval(() => {
+            checkEnrollmentStatus();
+        }, 30000); // Check every 30 seconds
+        console.log('Started status polling for enrollment updates');
+    }
+    
+    function stopStatusPolling() {
+        if (statusPolling) {
+            clearInterval(statusPolling);
+            statusPolling = null;
+            console.log('Stopped status polling');
+        }
+    }
+
+    if (joinCourseBtn) {
+        console.log('Join course button found, adding event listener');
+        joinCourseBtn.addEventListener('click', function() {
+            console.log('Join course button clicked!');
+            requestCourseEnrollment();
+        });
+    } else {
+        console.log('Join course button NOT found');
+    }
+
+    function checkEnrollmentStatus() {
+        const urlParams = new URLSearchParams({
+            skill_group: '{{ group_name }}',
+            skill_subgroup: '{{ subgroup_name }}',
+            skill_name: '{{ skill_name }}'
+        });
+
+        fetch('/api/check-course-enrollment/?' + urlParams.toString())
+            .then(response => response.json())
+            .then(data => {
+                console.log('Enrollment status check:', data);
+                if (data.enrolled && data.status === 'approved') {
+                    showEnrolledState();
+                    stopStatusPolling(); // Stop polling when approved
+                } else if (data.status === 'pending') {
+                    showPendingState();
+                    startStatusPolling(); // Start polling for pending requests
+                } else if (data.status === 'rejected') {
+                    showRejectedState(data.rejection_reason);
+                    stopStatusPolling(); // Stop polling when rejected
+                } else {
+                    showNotEnrolledState();
+                    stopStatusPolling(); // Stop polling when not enrolled
+                }
+            })
+            .catch(error => {
+                console.error('Error checking enrollment status:', error);
+            });
+    }
+
+    function requestCourseEnrollment() {
+        console.log('requestCourseEnrollment function called');
+        
+        // Change button to loading state
+        const joinBtn = document.getElementById('join-course-btn');
+        if (!joinBtn) {
+            console.error('Join button not found in requestCourseEnrollment function');
+            return;
+        }
+        
+        console.log('Changing button to loading state');
+        joinBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Submitting Request...';
+        joinBtn.disabled = true;
+
+        let csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+        
+        // Fallback: try to get CSRF token from cookies
+        if (!csrfToken) {
+            const cookieValue = document.cookie
+                .split('; ')
+                .find(row => row.startsWith('csrftoken='))
+                ?.split('=')[1];
+            
+            if (cookieValue) {
+                csrfToken = { value: cookieValue };
+            }
+        }
+        
+        if (!csrfToken) {
+            console.error('CSRF token not found in form or cookies');
+            showAlert('Security token missing. Please refresh the page.', 'danger');
+            // Reset button
+            joinBtn.innerHTML = '<i class="fas fa-users mr-2"></i>Join Course';
+            joinBtn.disabled = false;
+            return;
+        }
+
+        console.log('Sending enrollment request for:', {
+            skill_group: '{{ group_name }}',
+            skill_subgroup: '{{ subgroup_name }}',
+            skill_name: '{{ skill_name }}'
+        });
+
+        fetch('/api/request-course-enrollment/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken.value,
+            },
+            body: JSON.stringify({
+                skill_group: '{{ group_name }}',
+                skill_subgroup: '{{ subgroup_name }}',
+                skill_name: '{{ skill_name }}'
+            })
+        })
+        .then(response => {
+            console.log('Response status:', response.status);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Response data:', data);
+            if (data.success) {
+                showPendingState();
+                showAlert(data.message, 'success');
+                startStatusPolling(); // Start polling after successful request
+            } else {
+                showAlert(data.error, 'danger');
+                // Reset button
+                joinBtn.innerHTML = '<i class="fas fa-users mr-2"></i>Join Course';
+                joinBtn.disabled = false;
+            }
+        })
+        .catch(error => {
+            console.error('Fetch error:', error);
+            showAlert('An error occurred. Please try again. Check console for details.', 'danger');
+            // Reset button
+            joinBtn.innerHTML = '<i class="fas fa-users mr-2"></i>Join Course';
+            joinBtn.disabled = false;
+        });
+    }
+
+    function showEnrolledState() {
+        courseJoined = true;
+        
+        // Hide join section, show enrolled section
+        joinSection.style.display = 'none';
+        enrolledSection.style.display = 'block';
+        
+        // Update card styling
+        enrollmentCard.classList.remove('border-info', 'border-warning');
+        enrollmentCard.classList.add('border-success');
+        
+        // Enable all lesson start buttons
+        enableLessonButtons();
+        
+        // Add success animation to enrollment card
+        enrollmentCard.style.transform = 'scale(1.02)';
+        setTimeout(() => {
+            enrollmentCard.style.transform = 'scale(1)';
+        }, 300);
+        
+        console.log('Successfully joined the course! All lessons are now unlocked.');
+    }
+
+    function showPendingState() {
+        // Hide join section, show pending message
+        joinSection.style.display = 'none';
+        enrolledSection.style.display = 'none';
+        
+        // Hide other sections
+        const rejectedSection = document.getElementById('rejected-section');
+        if (rejectedSection) {
+            rejectedSection.style.display = 'none';
+        }
+        
+        // Create pending section if it doesn't exist
+        let pendingSection = document.getElementById('pending-section');
+        if (!pendingSection) {
+            pendingSection = document.createElement('div');
+            pendingSection.id = 'pending-section';
+            pendingSection.innerHTML = `
+                <h4 class="text-warning mb-3">
+                    <i class="fas fa-clock mr-2"></i>Enrollment Request Pending
+                </h4>
+                <p class="text-muted mb-3">Your enrollment request is being reviewed by an administrator. You'll be notified once approved!</p>
+                <p><small class="text-muted">This usually takes 24-48 hours.</small></p>
+            `;
+            enrollmentCard.querySelector('.card-body').appendChild(pendingSection);
+        }
+        
+        pendingSection.style.display = 'block';
+        
+        // Update card styling
+        enrollmentCard.classList.remove('border-info', 'border-success', 'border-danger');
+        enrollmentCard.classList.add('border-warning');
+        
+        // Disable lesson buttons with pending message
+        disableLessonButtons('Request Pending');
+    }
+
+    function showRejectedState(rejectionReason = '') {
+        // Hide join and enrolled sections
+        joinSection.style.display = 'none';
+        enrolledSection.style.display = 'none';
+        
+        // Hide other sections
+        const pendingSection = document.getElementById('pending-section');
+        if (pendingSection) {
+            pendingSection.style.display = 'none';
+        }
+        
+        // Create or update rejected section
+        let rejectedSection = document.getElementById('rejected-section');
+        if (!rejectedSection) {
+            rejectedSection = document.createElement('div');
+            rejectedSection.id = 'rejected-section';
+            enrollmentCard.querySelector('.card-body').appendChild(rejectedSection);
+        }
+        
+        rejectedSection.innerHTML = `
+            <h4 class="text-danger mb-3">
+                <i class="fas fa-times-circle mr-2"></i>Enrollment Request Rejected
+            </h4>
+            <div class="alert alert-danger">
+                <p class="mb-2"><strong>Your enrollment request was not approved.</strong></p>
+                ${rejectionReason ? `<p class="mb-2"><strong>Reason:</strong> ${rejectionReason}</p>` : ''}
+                <p class="mb-0">You can submit a new request by clicking the button below.</p>
+            </div>
+            <button id="resubmit-btn" class="btn btn-outline-primary btn-lg px-4 py-2">
+                <i class="fas fa-redo mr-2"></i>Request Again
+            </button>
+        `;
+        
+        rejectedSection.style.display = 'block';
+        
+        // Update card styling
+        enrollmentCard.classList.remove('border-info', 'border-warning', 'border-success');
+        enrollmentCard.classList.add('border-danger');
+        
+        // Disable lesson buttons with rejection message
+        disableLessonButtons('Request Rejected');
+        
+        // Add click handler for resubmit button
+        const resubmitBtn = document.getElementById('resubmit-btn');
+        if (resubmitBtn) {
+            resubmitBtn.addEventListener('click', function() {
+                requestCourseEnrollment();
+            });
+        }
+    }
+
+    function showNotEnrolledState() {
+        // Show join section
+        joinSection.style.display = 'block';
+        
+        // Hide other sections
+        const pendingSection = document.getElementById('pending-section');
+        const rejectedSection = document.getElementById('rejected-section');
+        if (pendingSection) {
+            pendingSection.style.display = 'none';
+        }
+        if (rejectedSection) {
+            rejectedSection.style.display = 'none';
+        }
+        enrolledSection.style.display = 'none';
+        
+        // Reset card styling
+        enrollmentCard.classList.remove('border-success', 'border-warning', 'border-danger');
+        enrollmentCard.classList.add('border-info');
+        
+        // Disable lesson buttons
+        disableLessonButtons('Join Course First');
+    }
+
+    function enableLessonButtons() {
+        const startButtons = document.querySelectorAll('.start-lesson');
+        startButtons.forEach(button => {
+            button.disabled = false;
+            button.innerHTML = '<i class="fas fa-play mr-1"></i>Start Lesson';
+            button.classList.remove('btn-outline-success', 'btn-outline-secondary');
+            button.classList.add('btn-success');
+        });
+        console.log('Lesson buttons enabled - course approved!');
+    }
+
+    function disableLessonButtons(message = 'Join Course First') {
+        const startButtons = document.querySelectorAll('.start-lesson');
+        startButtons.forEach(button => {
+            button.disabled = true;
+            button.innerHTML = `<i class="fas fa-lock mr-1"></i>${message}`;
+            button.classList.remove('btn-success', 'btn-outline-success');
+            button.classList.add('btn-outline-secondary');
+        });
+    }
+
+    function showAlert(message, type) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+        alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        `;
+        
+        document.body.appendChild(alertDiv);
+        
+        // Auto-dismiss after 5 seconds
+        setTimeout(() => {
+            if (alertDiv && alertDiv.parentNode) {
+                alertDiv.parentNode.removeChild(alertDiv);
+            }
+        }, 5000);
+    }
+    
+    // Handle lesson start buttons (only work after joining course)
     document.querySelectorAll('.start-lesson').forEach(function(button) {
         button.addEventListener('click', function() {
+            if (!courseJoined && this.disabled) {
+                // Show message to join course first
+                const enrollmentCard = document.getElementById('course-enrollment-card');
+                enrollmentCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                enrollmentCard.style.boxShadow = '0 0 20px rgba(23, 162, 184, 0.5)';
+                setTimeout(() => {
+                    enrollmentCard.style.boxShadow = '';
+                }, 2000);
+                return;
+            }
+            
             const lessonName = this.dataset.lesson;
             const skillName = this.dataset.skill;
             
@@ -202,27 +609,324 @@ document.addEventListener('DOMContentLoaded', function() {
             this.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Starting...';
             this.disabled = true;
             
-            // Simulate lesson start (you can replace this with actual functionality)
+            // Simulate lesson start
             setTimeout(() => {
-                this.innerHTML = '<i class="fas fa-check mr-1"></i>Started!';
-                this.classList.remove('btn-outline-success');
-                this.classList.add('btn-success');
+                this.innerHTML = '<i class="fas fa-play mr-1"></i>In Progress...';
+                this.classList.remove('btn-success');
+                this.classList.add('btn-warning');
                 
-                // You can add actual lesson tracking here
-                console.log(`Started lesson: ${lessonName} for skill: ${skillName}`);
+                // Mark row as in progress
+                const row = this.closest('tr');
+                row.classList.add('table-warning');
+                
+                // After another delay, mark as completed
+                setTimeout(() => {
+                    this.innerHTML = '<i class="fas fa-check mr-1"></i>Completed';
+                    this.classList.remove('btn-warning');
+                    this.classList.add('btn-success');
+                    
+                    // Mark row as completed
+                    row.classList.remove('table-warning');
+                    row.classList.add('table-success');
+                    
+                    console.log(`Completed lesson: ${lessonName} for skill: ${skillName}`);
+                }, 4000);
+                
             }, 1000);
         });
     });
     
-    // Make table rows clickable
+    // Make table rows clickable for start buttons (if course joined)
     document.querySelectorAll('.lesson-row').forEach(function(row) {
-        row.addEventListener('click', function() {
+        row.addEventListener('click', function(e) {
+            // Don't trigger if clicking directly on buttons
+            if (e.target.tagName === 'BUTTON' || e.target.closest('button')) {
+                return;
+            }
+            
             const startButton = this.querySelector('.start-lesson');
             if (startButton && !startButton.disabled) {
                 startButton.click();
             }
         });
     });
+    
+    checkEnrollmentStatus = function() {
+        const urlParams = new URLSearchParams({
+            skill_group: '{{ group_name }}',
+            skill_subgroup: '{{ subgroup_name }}',
+            skill_name: '{{ skill_name }}'
+        });
+
+        fetch('/api/check-course-enrollment/?' + urlParams.toString())
+            .then(response => response.json())
+            .then(data => {
+                console.log('Enrollment status check:', data);
+                
+                // Check for status changes
+                if (currentStatus && currentStatus !== data.status) {
+                    if (data.status === 'approved') {
+                        showAlert('🎉 Great news! Your enrollment request has been approved! You can now start all lessons.', 'success');
+                    } else if (data.status === 'rejected') {
+                        showAlert('❌ Your enrollment request was not approved. You can submit a new request.', 'warning');
+                    }
+                }
+                currentStatus = data.status;
+                
+                if (data.enrolled && data.status === 'approved') {
+                    showEnrolledState();
+                    stopStatusPolling(); // Stop polling when approved
+                } else if (data.status === 'pending') {
+                    showPendingState();
+                    startStatusPolling(); // Start polling for pending requests
+                } else if (data.status === 'rejected') {
+                    showRejectedState(data.rejection_reason);
+                    stopStatusPolling(); // Stop polling when rejected
+                } else {
+                    showNotEnrolledState();
+                    stopStatusPolling(); // Stop polling when not enrolled
+                }
+            })
+            .catch(error => {
+                console.error('Error checking enrollment status:', error);
+            });
+    }
+
+    // Course enrollment request function
+    function requestCourseEnrollment() {
+        console.log('requestCourseEnrollment function called');
+        
+        const joinBtn = document.getElementById('join-course-btn');
+        if (!joinBtn) {
+            console.error('Join button not found in requestCourseEnrollment function');
+            return;
+        }
+        
+        console.log('Changing button to loading state');
+        joinBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Submitting Request...';
+        joinBtn.disabled = true;
+
+        let csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+        
+        if (!csrfToken) {
+            const cookieValue = document.cookie
+                .split('; ')
+                .find(row => row.startsWith('csrftoken='))
+                ?.split('=')[1];
+            
+            if (cookieValue) {
+                csrfToken = { value: cookieValue };
+            }
+        }
+        
+        if (!csrfToken) {
+            console.error('CSRF token not found in form or cookies');
+            showAlert('Security token missing. Please refresh the page.', 'danger');
+            joinBtn.innerHTML = '<i class="fas fa-users mr-2"></i>Join Course';
+            joinBtn.disabled = false;
+            return;
+        }
+
+        console.log('Sending enrollment request for:', {
+            skill_group: '{{ group_name }}',
+            skill_subgroup: '{{ subgroup_name }}',
+            skill_name: '{{ skill_name }}'
+        });
+
+        fetch('/api/request-course-enrollment/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken.value,
+            },
+            body: JSON.stringify({
+                skill_group: '{{ group_name }}',
+                skill_subgroup: '{{ subgroup_name }}',
+                skill_name: '{{ skill_name }}'
+            })
+        })
+        .then(response => {
+            console.log('Response status:', response.status);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Response data:', data);
+            if (data.success) {
+                showPendingState();
+                showAlert(data.message, 'success');
+                startStatusPolling();
+            } else {
+                showAlert(data.error, 'danger');
+                joinBtn.innerHTML = '<i class="fas fa-users mr-2"></i>Join Course';
+                joinBtn.disabled = false;
+            }
+        })
+        .catch(error => {
+            console.error('Fetch error:', error);
+            showAlert('An error occurred. Please try again. Check console for details.', 'danger');
+            joinBtn.innerHTML = '<i class="fas fa-users mr-2"></i>Join Course';
+            joinBtn.disabled = false;
+        });
+    }
+
+    // State display functions
+    function showEnrolledState() {
+        courseJoined = true;
+        
+        joinSection.style.display = 'none';
+        enrolledSection.style.display = 'block';
+        
+        enrollmentCard.classList.remove('border-info', 'border-warning');
+        enrollmentCard.classList.add('border-success');
+        
+        enableLessonButtons();
+        
+        enrollmentCard.style.transform = 'scale(1.02)';
+        setTimeout(() => {
+            enrollmentCard.style.transform = 'scale(1)';
+        }, 300);
+        
+        console.log('Successfully joined the course! All lessons are now unlocked.');
+    }
+
+    function showPendingState() {
+        joinSection.style.display = 'none';
+        enrolledSection.style.display = 'none';
+        
+        const rejectedSection = document.getElementById('rejected-section');
+        if (rejectedSection) {
+            rejectedSection.style.display = 'none';
+        }
+        
+        let pendingSection = document.getElementById('pending-section');
+        if (!pendingSection) {
+            pendingSection = document.createElement('div');
+            pendingSection.id = 'pending-section';
+            pendingSection.innerHTML = `
+                <h4 class="text-warning mb-3">
+                    <i class="fas fa-clock mr-2"></i>Enrollment Request Pending
+                </h4>
+                <p class="text-muted mb-3">Your enrollment request is being reviewed by an administrator. You'll be notified once approved!</p>
+                <p><small class="text-muted">This usually takes 24-48 hours.</small></p>
+            `;
+            enrollmentCard.querySelector('.card-body').appendChild(pendingSection);
+        }
+        
+        pendingSection.style.display = 'block';
+        
+        enrollmentCard.classList.remove('border-info', 'border-success', 'border-danger');
+        enrollmentCard.classList.add('border-warning');
+        
+        disableLessonButtons('Request Pending');
+    }
+
+    function showRejectedState(rejectionReason = '') {
+        joinSection.style.display = 'none';
+        enrolledSection.style.display = 'none';
+        
+        const pendingSection = document.getElementById('pending-section');
+        if (pendingSection) {
+            pendingSection.style.display = 'none';
+        }
+        
+        let rejectedSection = document.getElementById('rejected-section');
+        if (!rejectedSection) {
+            rejectedSection = document.createElement('div');
+            rejectedSection.id = 'rejected-section';
+            enrollmentCard.querySelector('.card-body').appendChild(rejectedSection);
+        }
+        
+        rejectedSection.innerHTML = `
+            <h4 class="text-danger mb-3">
+                <i class="fas fa-times-circle mr-2"></i>Enrollment Request Rejected
+            </h4>
+            <div class="alert alert-danger">
+                <p class="mb-2"><strong>Your enrollment request was not approved.</strong></p>
+                ${rejectionReason ? `<p class="mb-2"><strong>Reason:</strong> ${rejectionReason}</p>` : ''}
+                <p class="mb-0">You can submit a new request by clicking the button below.</p>
+            </div>
+            <button id="resubmit-btn" class="btn btn-outline-primary btn-lg px-4 py-2">
+                <i class="fas fa-redo mr-2"></i>Request Again
+            </button>
+        `;
+        
+        rejectedSection.style.display = 'block';
+        
+        enrollmentCard.classList.remove('border-info', 'border-warning', 'border-success');
+        enrollmentCard.classList.add('border-danger');
+        
+        disableLessonButtons('Request Rejected');
+        
+        const resubmitBtn = document.getElementById('resubmit-btn');
+        if (resubmitBtn) {
+            resubmitBtn.addEventListener('click', function() {
+                requestCourseEnrollment();
+            });
+        }
+    }
+
+    function showNotEnrolledState() {
+        joinSection.style.display = 'block';
+        
+        const pendingSection = document.getElementById('pending-section');
+        const rejectedSection = document.getElementById('rejected-section');
+        if (pendingSection) {
+            pendingSection.style.display = 'none';
+        }
+        if (rejectedSection) {
+            rejectedSection.style.display = 'none';
+        }
+        enrolledSection.style.display = 'none';
+        
+        enrollmentCard.classList.remove('border-success', 'border-warning', 'border-danger');
+        enrollmentCard.classList.add('border-info');
+        
+        disableLessonButtons('Join Course First');
+    }
+
+    function enableLessonButtons() {
+        const startButtons = document.querySelectorAll('.start-lesson');
+        startButtons.forEach(button => {
+            button.disabled = false;
+            button.innerHTML = '<i class="fas fa-play mr-1"></i>Start Lesson';
+            button.classList.remove('btn-outline-success', 'btn-outline-secondary');
+            button.classList.add('btn-success');
+        });
+        console.log('Lesson buttons enabled - course approved!');
+    }
+
+    function disableLessonButtons(message = 'Join Course First') {
+        const startButtons = document.querySelectorAll('.start-lesson');
+        startButtons.forEach(button => {
+            button.disabled = true;
+            button.innerHTML = `<i class="fas fa-lock mr-1"></i>${message}`;
+            button.classList.remove('btn-success', 'btn-outline-success');
+            button.classList.add('btn-outline-secondary');
+        });
+    }
+
+    function showAlert(message, type) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+        alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        `;
+        
+        document.body.appendChild(alertDiv);
+        
+        setTimeout(() => {
+            if (alertDiv && alertDiv.parentNode) {
+                alertDiv.parentNode.removeChild(alertDiv);
+            }
+        }, 5000);
+    }
 });
 </script>
 {% endblock %}

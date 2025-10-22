@@ -13,5 +13,12 @@ urlpatterns = [
     path('add_skill', views.add_skill, name='add_skill'),
     path('lessons/<path:group_name>/<path:subgroup_name>/<path:skill_name>/', views.lessons, name='lessons'),
     path('private-lesson/', views.private_lesson, name='private_lesson'),
+    
+    # Course management URLs
+    path('course-management/', views.course_management, name='course_management'),
+    path('course-management/process-enrollment/<int:request_id>/', views.process_enrollment_request, name='process_enrollment_request'),
+    path('api/request-course-enrollment/', views.request_course_enrollment, name='request_course_enrollment'),
+    path('api/check-course-enrollment/', views.check_course_enrollment_status, name='check_course_enrollment_status'),
+    path('debug/enrollment/', views.debug_enrollment, name='debug_enrollment'),
 
 ]

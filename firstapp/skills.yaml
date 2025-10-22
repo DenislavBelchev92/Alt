@@ -1,3 +1,86 @@
+- group: Math
+  subgroups:
+    - name: Practical Math
+      skills:
+        - skill: Money and Shopping
+          lessons:
+            - "Planning a Budget for a School Event"
+            - "Calculating Best Deals and Discounts"
+            - "Managing a Small Business Project"
+        - skill: Measuring and Building
+          lessons:
+            - "Designing Your Dream Room"
+            - "Building a Garden Box with Exact Measurements"
+            - "Creating Scale Models of Famous Buildings"
+        - skill: Data and Graphs
+          lessons:
+            - "Surveying Your School: Collecting Real Data"
+            - "Creating Charts from Sports Statistics"
+            - "Analyzing Weather Patterns in Your City"
+    - name: Math in Technology
+      skills:
+        - skill: Code and Algorithms
+          lessons:
+            - "Creating Math Games in Scratch"
+            - "Building a Calculator App"
+            - "Programming Geometric Art"
+        - skill: 3D and Graphics
+          lessons:
+            - "Designing 3D Objects with Math"
+            - "Creating Animations Using Functions"
+            - "Building Virtual Reality Worlds"
+    - name: Fun Math Projects
+      skills:
+        - skill: Math Magic and Puzzles
+          lessons:
+            - "Mind-Reading Number Tricks"
+            - "Creating Your Own Escape Room"
+            - "Mathematical Art and Patterns"
+        - skill: Sports and Games Math
+          lessons:
+            - "Probability in Card Games"
+            - "Statistics in Your Favorite Sport"
+            - "Geometry in Video Game Design"
+
+- group: Physics
+  subgroups:
+    - name: Forces and Motion
+      skills:
+        - skill: Building and Testing
+          lessons:
+            - "Paper Airplane Physics Competition"
+            - "Bridge Building Challenge"
+            - "Rocket Car Design Race"
+        - skill: Simple Machines
+          lessons:
+            - "Creating a Rube Goldberg Machine"
+            - "Building Working Catapults"
+            - "Designing Pulley Systems for Heavy Lifting"
+    - name: Energy and Electricity
+      skills:
+        - skill: Solar and Wind Power
+          lessons:
+            - "Building a Solar-Powered Car"
+            - "Creating a Wind Turbine Generator"
+            - "Designing an Off-Grid Phone Charger"
+        - skill: Circuits and Electronics
+          lessons:
+            - "LED Light Show Circuit"
+            - "Building a Simple Radio"
+            - "Creating Electronic Musical Instruments"
+    - name: Waves and Light
+      skills:
+        - skill: Sound Experiments
+          lessons:
+            - "Building Musical Instruments from Scratch"
+            - "Sound Wave Visualization Projects"
+            - "Creating Echo and Reverb Effects"
+        - skill: Light and Optics
+          lessons:
+            - "Building Your Own Telescope"
+            - "Creating Rainbow Light Experiments"
+            - "Photography with Homemade Camera"
+
 - group: Linux
   subgroups:
     - name: Basics
@@ -78,100 +161,6 @@
             - "Protecting Personal Information"
             - "Software Updates and Patches"
             - "Backup Strategies"
-
-- group: Python
-  subgroups:
-    - name: Basics
-      skills:
-        - skill: Variables and Math
-          lessons:
-            - "Your First Python Program"
-            - "Numbers, Strings, and Variables"
-            - "Math Operations and Calculations"
-            - "Getting User Input"
-        - skill: Lists and Loops
-          lessons:
-            - "Creating and Using Lists"
-            - "Adding and Removing Items"
-            - "For Loops: Repeating Actions"
-            - "While Loops: Conditions"
-        - skill: If Statements
-          lessons:
-            - "Making Decisions in Code"
-            - "Comparing Numbers and Text"
-            - "Multiple Conditions with elif"
-            - "Building a Simple Quiz Game"
-        - skill: Simple Functions
-          lessons:
-            - "What are Functions?"
-            - "Creating Your Own Functions"
-            - "Function Parameters and Arguments"
-            - "Returning Values from Functions"
-    - name: Advanced
-      skills:
-        - skill: Classes and Objects
-          lessons:
-            - "Understanding Objects in Real Life"
-            - "Creating Your First Class"
-            - "Class Methods and Attributes"
-            - "Building a Student Management System"
-        - skill: Making Websites
-          lessons:
-            - "Introduction to Web Development"
-            - "HTML Templates with Flask"
-            - "Handling User Forms"
-            - "Creating Your Personal Website"
-        - skill: Working with Databases
-          lessons:
-            - "What are Databases?"
-            - "Storing and Retrieving Data"
-            - "Creating User Registration Systems"
-            - "Building a Simple Contact List"
-        - skill: Creating Games
-          lessons:
-            - "Introduction to Pygame"
-            - "Moving Characters on Screen"
-            - "Collision Detection"
-            - "Building Your First Complete Game"
-
-- group: AI
-  subgroups:
-    - name: Machine Learning
-      skills:
-        - skill: Teaching Computers to Learn
-          lessons:
-            - "What is Artificial Intelligence?"
-            - "Training Simple Models"
-            - "Image Recognition Basics"
-        - skill: Making Predictions
-          lessons:
-            - "Understanding Patterns in Data"
-            - "Weather Prediction Project"
-            - "Sports Score Predictions"
-    - name: Data Science
-      skills:
-        - skill: Analyzing Data
-          lessons:
-            - "Reading Data from Files"
-            - "Creating Charts and Graphs"
-            - "Finding Interesting Patterns"
-        - skill: Data Visualization
-          lessons:
-            - "Creating Interactive Dashboards"
-            - "Building Data Stories"
-            - "Making Infographics with Code"
-    - name: Smart Applications
-      skills:
-        - skill: Chat Bots and Smart Apps
-          lessons:
-            - "Building Your First Chat Bot"
-            - "Natural Language Processing Basics"
-            - "Voice Recognition Projects"
-        - skill: AI Games and Fun
-          lessons:
-            - "Teaching AI to Play Games"
-            - "Creating AI Art"
-            - "Building Smart Home Assistants"
 
 - group: C
   subgroups:
@@ -295,98 +284,107 @@
             - "Creating Patterns with LEDs"
             - "Music-Synchronized Light Shows"
             - "Wearable LED Projects"
-            - "Large-Scale Light Displays"
         - skill: Voice-Controlled Devices
           lessons:
             - "Speech Recognition Basics"
             - "Building Voice-Activated Switches"
             - "Creating Your Own Smart Speaker"
-            - "Multi-Command Voice Systems"
         - skill: Game Controllers
           lessons:
             - "Understanding Game Input Systems"
             - "Building Custom Game Controllers"
             - "Gesture-Based Game Control"
 
-- group: Math
+- group: Python
   subgroups:
-    - name: Practical Math
+    - name: Basics
       skills:
-        - skill: Money and Shopping
+        - skill: Variables and Math
           lessons:
-            - "Planning a Budget for a School Event"
-            - "Calculating Best Deals and Discounts"
-            - "Managing a Small Business Project"
-        - skill: Measuring and Building
+            - "Your First Python Program"
+            - "Numbers, Strings, and Variables"
+            - "Math Operations and Calculations"
+            - "Getting User Input"
+        - skill: Lists and Loops
           lessons:
-            - "Designing Your Dream Room"
-            - "Building a Garden Box with Exact Measurements"
-            - "Creating Scale Models of Famous Buildings"
-        - skill: Data and Graphs
+            - "Creating and Using Lists"
+            - "Adding and Removing Items"
+            - "For Loops: Repeating Actions"
+            - "While Loops: Conditions"
+        - skill: If Statements
           lessons:
-            - "Surveying Your School: Collecting Real Data"
-            - "Creating Charts from Sports Statistics"
-            - "Analyzing Weather Patterns in Your City"
-    - name: Math in Technology
+            - "Making Decisions in Code"
+            - "Comparing Numbers and Text"
+            - "Multiple Conditions with elif"
+            - "Building a Simple Quiz Game"
+        - skill: Simple Functions
+          lessons:
+            - "What are Functions?"
+            - "Creating Your Own Functions"
+            - "Function Parameters and Arguments"
+            - "Returning Values from Functions"
+    - name: Advanced
       skills:
-        - skill: Code and Algorithms
+        - skill: Classes and Objects
           lessons:
-            - "Creating Math Games in Scratch"
-            - "Building a Calculator App"
-            - "Programming Geometric Art"
-        - skill: 3D and Graphics
+            - "Understanding Objects in Real Life"
+            - "Creating Your First Class"
+            - "Class Methods and Attributes"
+            - "Building a Student Management System"
+        - skill: Making Websites
           lessons:
-            - "Designing 3D Objects with Math"
-            - "Creating Animations Using Functions"
-            - "Building Virtual Reality Worlds"
-    - name: Fun Math Projects
-      skills:
-        - skill: Math Magic and Puzzles
+            - "Introduction to Web Development"
+            - "HTML Templates with Flask"
+            - "Handling User Forms"
+            - "Creating Your Personal Website"
+        - skill: Working with Databases
           lessons:
-            - "Mind-Reading Number Tricks"
-            - "Creating Your Own Escape Room"
-            - "Mathematical Art and Patterns"
-        - skill: Sports and Games Math
+            - "What are Databases?"
+            - "Storing and Retrieving Data"
+            - "Creating User Registration Systems"
+            - "Building a Simple Contact List"
+        - skill: Creating Games
           lessons:
-            - "Probability in Card Games"
-            - "Statistics in Your Favorite Sport"
-            - "Geometry in Video Game Design"
+            - "Introduction to Pygame"
+            - "Moving Characters on Screen"
+            - "Collision Detection"
+            - "Building Your First Complete Game"
 
-- group: Physics
+- group: AI
   subgroups:
-    - name: Forces and Motion
+    - name: Machine Learning
       skills:
-        - skill: Building and Testing
+        - skill: Teaching Computers to Learn
           lessons:
-            - "Paper Airplane Physics Competition"
-            - "Bridge Building Challenge"
-            - "Rocket Car Design Race"
-        - skill: Simple Machines
+            - "What is Artificial Intelligence?"
+            - "Training Simple Models"
+            - "Image Recognition Basics"
+        - skill: Making Predictions
           lessons:
-            - "Creating a Rube Goldberg Machine"
-            - "Building Working Catapults"
-            - "Designing Pulley Systems for Heavy Lifting"
-    - name: Energy and Electricity
+            - "Understanding Patterns in Data"
+            - "Weather Prediction Project"
+            - "Sports Score Predictions"
+    - name: Data Science
       skills:
-        - skill: Solar and Wind Power
+        - skill: Analyzing Data
           lessons:
-            - "Building a Solar-Powered Car"
-            - "Creating a Wind Turbine Generator"
-            - "Designing an Off-Grid Phone Charger"
-        - skill: Circuits and Electronics
+            - "Reading Data from Files"
+            - "Creating Charts and Graphs"
+            - "Finding Interesting Patterns"
+        - skill: Data Visualization
           lessons:
-            - "LED Light Show Circuit"
-            - "Building a Simple Radio"
-            - "Creating Electronic Musical Instruments"
-    - name: Waves and Light
+            - "Creating Interactive Dashboards"
+            - "Building Data Stories"
+            - "Making Infographics with Code"
+    - name: Smart Applications
       skills:
-        - skill: Sound Experiments
+        - skill: Chat Bots and Smart Apps
           lessons:
-            - "Building Musical Instruments from Scratch"
-            - "Sound Wave Visualization Projects"
-            - "Creating Echo and Reverb Effects"
-        - skill: Light and Optics
+            - "Building Your First Chat Bot"
+            - "Natural Language Processing Basics"
+            - "Voice Recognition Projects"
+        - skill: AI Games and Fun
           lessons:
-            - "Building Your Own Telescope"
-            - "Creating Rainbow Light Experiments"
-            - "Photography with Homemade Camera"
+            - "Teaching AI to Play Games"
+            - "Creating AI Art"
+            - "Building Smart Home Assistants"

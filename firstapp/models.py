@@ -64,3 +64,47 @@ class Skill(models.Model):
         # Ensure level is always between 0 and 100
         self.level = min(max(self.level, 0), 100)
         super().save(*args, **kwargs)
+
+class CourseEnrollmentRequest(models.Model):
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+    ]
+    
+    user = models.ForeignKey(AltUser, on_delete=models.CASCADE, related_name='enrollment_requests')
+    skill_group = models.CharField(max_length=100)  # e.g., "Math"
+    skill_subgroup = models.CharField(max_length=100)  # e.g., "Practical Math"
+    skill_name = models.CharField(max_length=100)  # e.g., "Money and Shopping"
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
+    requested_at = models.DateTimeField(auto_now_add=True)
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    reviewed_by = models.ForeignKey(AltUser, on_delete=models.SET_NULL, null=True, blank=True, related_name='reviewed_requests')
+    admin_notes = models.TextField(blank=True, null=True)
+    
+    class Meta:
+        unique_together = ['user', 'skill_group', 'skill_subgroup', 'skill_name']
+        ordering = ['-requested_at']
+    
+    def __str__(self):
+        return f"{self.user.username} - {self.skill_group}/{self.skill_subgroup}/{self.skill_name} ({self.status})"
+    
+    @property
+    def course_full_name(self):
+        return f"{self.skill_group} > {self.skill_subgroup} > {self.skill_name}"
+
+class ApprovedCourseEnrollment(models.Model):
+    """Track users who have been approved and enrolled in courses"""
+    user = models.ForeignKey(AltUser, on_delete=models.CASCADE, related_name='approved_enrollments')
+    skill_group = models.CharField(max_length=100)
+    skill_subgroup = models.CharField(max_length=100)
+    skill_name = models.CharField(max_length=100)
+    enrollment_request = models.OneToOneField(CourseEnrollmentRequest, on_delete=models.CASCADE, related_name='approved_enrollment')
+    enrolled_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        unique_together = ['user', 'skill_group', 'skill_subgroup', 'skill_name']
+        ordering = ['-enrolled_at']
+    
+    def __str__(self):
+        return f"{self.user.username} enrolled in {self.skill_group}/{self.skill_subgroup}/{self.skill_name}"

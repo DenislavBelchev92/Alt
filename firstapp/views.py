@@ -1,13 +1,17 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login as auth_login, logout as atuh_logout
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
+from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib import messages
-from django.shortcuts import render, redirect, get_object_or_404
-from .models import Skill, SkillName 
+from django.http import JsonResponse
+from django.utils import timezone
+from django.views.decorators.http import require_http_methods
+from .models import Skill, SkillName, CourseEnrollmentRequest, ApprovedCourseEnrollment
 from .forms import SkillForm, ProfileForm
 import yaml
 import os
+import json
 from django.conf import settings
 
 User = get_user_model()
@@ -267,4 +271,199 @@ def add_skill(request):
         form = SkillForm(user=request.user)
     
     return render(request, 'add_skill.html', {'form': form})
+
+
+
+@staff_member_required
+def course_management(request):
+    """Admin view to manage course enrollment requests"""
+    # Get all pending requests
+    pending_requests = CourseEnrollmentRequest.objects.filter(status='pending').order_by('-requested_at')
+    
+    # Get recent approved/rejected requests for reference
+    recent_reviewed = CourseEnrollmentRequest.objects.filter(
+        status__in=['approved', 'rejected']
+    ).order_by('-reviewed_at')[:20]
+    
+    # Get statistics
+    stats = {
+        'pending_count': CourseEnrollmentRequest.objects.filter(status='pending').count(),
+        'approved_count': CourseEnrollmentRequest.objects.filter(status='approved').count(),
+        'rejected_count': CourseEnrollmentRequest.objects.filter(status='rejected').count(),
+        'total_enrolled': ApprovedCourseEnrollment.objects.count(),
+    }
+    
+    context = {
+        'pending_requests': pending_requests,
+        'recent_reviewed': recent_reviewed,
+        'stats': stats,
+    }
+    
+    return render(request, 'admin/course_management.html', context)
+
+@staff_member_required
+@require_http_methods(["POST"])
+def process_enrollment_request(request, request_id):
+    """Process (approve/reject) an enrollment request"""
+    try:
+        enrollment_request = get_object_or_404(CourseEnrollmentRequest, id=request_id, status='pending')
+        data = json.loads(request.body)
+        action = data.get('action')  # 'approve' or 'reject'
+        admin_notes = data.get('notes', '')
+        
+        if action not in ['approve', 'reject']:
+            return JsonResponse({'success': False, 'error': 'Invalid action'})
+        
+        # Update the request
+        enrollment_request.status = 'approved' if action == 'approve' else 'rejected'
+        enrollment_request.reviewed_at = timezone.now()
+        enrollment_request.reviewed_by = request.user
+        enrollment_request.admin_notes = admin_notes
+        enrollment_request.save()
+        
+        # If approved, create the enrollment record
+        if action == 'approve':
+            ApprovedCourseEnrollment.objects.create(
+                user=enrollment_request.user,
+                skill_group=enrollment_request.skill_group,
+                skill_subgroup=enrollment_request.skill_subgroup,
+                skill_name=enrollment_request.skill_name,
+                enrollment_request=enrollment_request
+            )
+        
+        return JsonResponse({
+            'success': True, 
+            'message': f'Request {action}d successfully'
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+@login_required
+@require_http_methods(["POST"])
+def request_course_enrollment(request):
+    """Handle course enrollment requests from users"""
+    try:
+        print(f"Received enrollment request from user: {request.user}")
+        print(f"Request body: {request.body}")
+        
+        data = json.loads(request.body)
+        skill_group = data.get('skill_group')
+        skill_subgroup = data.get('skill_subgroup') 
+        skill_name = data.get('skill_name')
+        
+        print(f"Parsed data - Group: {skill_group}, Subgroup: {skill_subgroup}, Skill: {skill_name}")
+        
+        if not all([skill_group, skill_subgroup, skill_name]):
+            return JsonResponse({'success': False, 'error': 'Missing required parameters'})
+        
+        # Check if user already has a request for this course
+        existing_request = CourseEnrollmentRequest.objects.filter(
+            user=request.user,
+            skill_group=skill_group,
+            skill_subgroup=skill_subgroup,
+            skill_name=skill_name
+        ).first()
+        
+        if existing_request:
+            if existing_request.status == 'pending':
+                return JsonResponse({
+                    'success': False, 
+                    'error': 'You already have a pending request for this course'
+                })
+            elif existing_request.status == 'approved':
+                return JsonResponse({
+                    'success': False,
+                    'error': 'You are already enrolled in this course'
+                })
+            elif existing_request.status == 'rejected':
+                # Allow resubmission if previously rejected
+                existing_request.status = 'pending'
+                existing_request.requested_at = timezone.now()
+                existing_request.reviewed_at = None
+                existing_request.reviewed_by = None
+                existing_request.admin_notes = ''
+                existing_request.save()
+                
+                return JsonResponse({
+                    'success': True,
+                    'message': 'Your enrollment request has been resubmitted for review'
+                })
+        else:
+            # Create new request
+            CourseEnrollmentRequest.objects.create(
+                user=request.user,
+                skill_group=skill_group,
+                skill_subgroup=skill_subgroup,
+                skill_name=skill_name
+            )
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Your enrollment request has been submitted for admin approval'
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+@login_required
+def check_course_enrollment_status(request):
+    """Check if user is enrolled in a specific course"""
+    skill_group = request.GET.get('skill_group')
+    skill_subgroup = request.GET.get('skill_subgroup')
+    skill_name = request.GET.get('skill_name')
+    
+    if not all([skill_group, skill_subgroup, skill_name]):
+        return JsonResponse({'enrolled': False, 'status': 'missing_params'})
+    
+    # Check if approved enrollment exists
+    enrollment = ApprovedCourseEnrollment.objects.filter(
+        user=request.user,
+        skill_group=skill_group,
+        skill_subgroup=skill_subgroup,
+        skill_name=skill_name
+    ).first()
+    
+    if enrollment:
+        return JsonResponse({'enrolled': True, 'status': 'approved'})
+    
+    # Check if there's a pending request
+    pending_request = CourseEnrollmentRequest.objects.filter(
+        user=request.user,
+        skill_group=skill_group,
+        skill_subgroup=skill_subgroup,
+        skill_name=skill_name,
+        status='pending'
+    ).first()
+    
+    if pending_request:
+        return JsonResponse({'enrolled': False, 'status': 'pending'})
+    
+    # Check if there's a rejected request
+    rejected_request = CourseEnrollmentRequest.objects.filter(
+        user=request.user,
+        skill_group=skill_group,
+        skill_subgroup=skill_subgroup,
+        skill_name=skill_name,
+        status='rejected'
+    ).first()
+    
+    if rejected_request:
+        return JsonResponse({
+            'enrolled': False, 
+            'status': 'rejected',
+            'rejection_reason': rejected_request.admin_notes or 'No specific reason provided.'
+        })
+    
+    return JsonResponse({'enrolled': False, 'status': 'not_requested'})
+
+def debug_enrollment(request):
+    """Debug endpoint to test enrollment system"""
+    if request.method == 'GET':
+        return JsonResponse({
+            'user': request.user.username if request.user.is_authenticated else 'Anonymous',
+            'is_authenticated': request.user.is_authenticated,
+            'total_requests': CourseEnrollmentRequest.objects.count(),
+            'user_requests': CourseEnrollmentRequest.objects.filter(user=request.user).count() if request.user.is_authenticated else 0
+        })
 
