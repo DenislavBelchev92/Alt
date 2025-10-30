@@ -8,9 +8,6 @@
   <!-- Hero Section -->
   <div class="row justify-content-center text-center mb-5">
     <div class="col-lg-8">
-      <h1 class="display-4 font-weight-bold text-primary">{{ message }}</h1>
-      <p class="lead text-muted mb-4">{{ extra_message }}</p>
-      
       <!-- Big Private Lesson Button -->
       <div class="mt-4 mb-5">
         <a href="{% url 'private_lesson' %}" class="btn btn-primary btn-lg px-5 py-3 shadow-lg">
@@ -20,8 +17,145 @@
         </a>
         <p class="text-muted mt-3">Get personalized 1-on-1 tutoring for any skill</p>
       </div>
+      
+      <!-- Week Navigation Controls -->
+      <div class="week-navigation mb-4">
+        <div class="d-flex justify-content-center align-items-center mb-3">
+          <button class="btn btn-outline-primary btn-sm mx-2" onclick="navigateWeek('{{ prev_week|date:"Y-m-d" }}')">
+            <i class="fas fa-chevron-left"></i> Previous Week
+          </button>
+          
+          <div class="week-display mx-3">
+            <h5 class="mb-1">
+              <span class="badge badge-primary px-3 py-2">
+                {{ week_start|date:"M d" }} - {{ week_end|date:"M d, Y" }}
+              </span>
+            </h5>
+            <input type="date" id="week-picker" class="form-control form-control-sm d-inline-block" 
+                   style="width: auto;" value="{{ selected_week }}" 
+                   onchange="navigateToSelectedWeek(this.value)">
+          </div>
+          
+          <button class="btn btn-outline-primary btn-sm mx-2" onclick="navigateWeek('{{ next_week|date:"Y-m-d" }}')">
+            Next Week <i class="fas fa-chevron-right"></i>
+          </button>
+        </div>
+        
+        <div class="quick-navigation">
+          <button class="btn btn-sm btn-outline-secondary mx-1" onclick="navigateToCurrentWeek()">
+            <i class="fas fa-home"></i> This Week
+          </button>
+        </div>
+      </div>
     </div>
   </div>
+
+  <!-- Scheduled Courses Section -->
+  {% if upcoming_courses %}
+    <div class="row mb-5">
+      <div class="col-12">
+        <div class="card border-0 shadow-sm">
+          <div class="card-header bg-primary text-white">
+            <h3 class="mb-0">
+              <i class="fas fa-calendar-alt mr-2"></i>
+              Scheduled Courses for Week of {{ week_start|date:"M d" }} - {{ week_end|date:"M d, Y" }}
+            </h3>
+          </div>
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="table table-hover">
+                <thead class="thead-light">
+                  <tr>
+                    <th>Course</th>
+                    <th>Date</th>
+                    <th>Time</th>
+                    <th>Instructor</th>
+                    <th>Available Spots</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for course in upcoming_courses %}
+                  <tr>
+                    <td>
+                      <strong>{{ course.course_full_name }}</strong>
+                      <br>
+                      <small class="text-muted">
+                        <span class="badge badge-secondary">{{ course.skill_group }}</span>
+                      </small>
+                    </td>
+                    <td>
+                      <strong>{{ course.scheduled_date|date:"M d, Y" }}</strong>
+                      <br>
+                      <small class="text-muted">{{ course.scheduled_date|date:"l" }}</small>
+                    </td>
+                    <td>
+                      <strong>{{ course.scheduled_time|time:"H:i" }}</strong>
+                    </td>
+                    <td>
+                      {{ course.instructor.first_name }} {{ course.instructor.last_name|default:course.instructor.username }}
+                    </td>
+                    <td>
+                      {% if course.skill_group == "Private Lesson" %}
+                        <span class="badge badge-info">Private Lesson</span>
+                      {% elif course.available_spots > 0 %}
+                        <span class="badge badge-success">{{ course.available_spots }} / {{ course.max_students }}</span>
+                      {% else %}
+                        <span class="badge badge-danger">Full</span>
+                      {% endif %}
+                    </td>
+                    <td>
+                      {% if user.is_authenticated %}
+                        {% if course.skill_group == "Private Lesson" %}
+                          <button class="btn btn-secondary btn-sm" disabled>
+                            <i class="fas fa-user mr-1"></i>Private
+                          </button>
+                        {% elif course.available_spots > 0 %}
+                          <button class="btn btn-primary btn-sm" onclick="enrollInCourse({{ course.id }})">
+                            <i class="fas fa-plus mr-1"></i>Enroll
+                          </button>
+                        {% else %}
+                          <button class="btn btn-secondary btn-sm" disabled>
+                            <i class="fas fa-times mr-1"></i>Full
+                          </button>
+                        {% endif %}
+                      {% else %}
+                        {% if course.skill_group == "Private Lesson" %}
+                          <button class="btn btn-secondary btn-sm" disabled>
+                            <i class="fas fa-user mr-1"></i>Private
+                          </button>
+                        {% else %}
+                          <a href="{% url 'login' %}" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-sign-in-alt mr-1"></i>Login to Enroll
+                          </a>
+                        {% endif %}
+                      {% endif %}
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  {% else %}
+    <div class="row mb-5">
+      <div class="col-12">
+        <div class="card border-0 shadow-sm">
+          <div class="card-body text-center py-5">
+            <i class="fas fa-calendar-times fa-4x text-muted mb-3"></i>
+            <h4 class="text-muted">No Courses Scheduled</h4>
+            <p class="text-muted">No courses are scheduled for the week of {{ week_start|date:"M d" }} - {{ week_end|date:"M d, Y" }}</p>
+            <button class="btn btn-outline-primary btn-sm mt-2" onclick="navigateToCurrentWeek()">
+              <i class="fas fa-home mr-1"></i>Go to Current Week
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endif %}
 
   <!-- Features Section -->
   <div class="row text-center">
@@ -76,5 +210,115 @@
   transform: translateY(-5px);
   box-shadow: 0 15px 30px rgba(0,0,0,0.1);
 }
+
+.table-responsive {
+  border-radius: 8px;
+}
+
+.badge {
+  font-size: 0.8em;
+}
+
+/* Week Navigation Styles */
+.week-navigation {
+  background: rgba(0, 123, 255, 0.05);
+  border-radius: 15px;
+  padding: 20px;
+  margin: 20px 0;
+}
+
+.week-display {
+  text-align: center;
+}
+
+.week-display .badge {
+  font-size: 1rem;
+  border-radius: 25px;
+}
+
+#week-picker {
+  margin-top: 10px;
+  border: 2px solid #007bff;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.quick-navigation .btn {
+  border-radius: 20px;
+  font-size: 0.85rem;
+}
+
+.btn-outline-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0, 123, 255, 0.2);
+}
+
+.btn-outline-secondary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(108, 117, 125, 0.2);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .week-navigation .d-flex {
+    flex-direction: column;
+  }
+  
+  .week-navigation .btn {
+    margin: 5px 0;
+  }
+  
+  .week-display {
+    margin: 15px 0;
+  }
+}
 </style>
+
+<script>
+function enrollInCourse(courseId) {
+    // This function will handle course enrollment
+    // For now, just show an alert - you can implement the enrollment logic later
+    alert('Course enrollment feature coming soon! Course ID: ' + courseId);
+}
+
+// Week navigation functions
+function navigateWeek(weekDate) {
+    window.location.href = '/?week=' + weekDate;
+}
+
+function navigateToCurrentWeek() {
+    // Get current date and find the Monday of current week
+    const today = new Date();
+    const dayOfWeek = today.getDay();
+    const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Sunday is 0, so we need 6 days back
+    const monday = new Date(today);
+    monday.setDate(today.getDate() - daysToMonday);
+    
+    const weekDate = monday.toISOString().split('T')[0];
+    navigateWeek(weekDate);
+}
+
+function navigateToSelectedWeek(selectedDate) {
+    // Convert selected date to the Monday of that week
+    const date = new Date(selectedDate);
+    const dayOfWeek = date.getDay();
+    const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+    const monday = new Date(date);
+    monday.setDate(date.getDate() - daysToMonday);
+    
+    const weekDate = monday.toISOString().split('T')[0];
+    navigateWeek(weekDate);
+}
+
+// Keyboard navigation
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'ArrowLeft' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        document.querySelector('button[onclick*="prev_week"]').click();
+    } else if (e.key === 'ArrowRight' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        document.querySelector('button[onclick*="next_week"]').click();
+    }
+});
+</script>
 {% endblock %}

@@ -19,6 +19,7 @@ urlpatterns = [
     path('course-management/process-enrollment/<int:request_id>/', views.process_enrollment_request, name='process_enrollment_request'),
     path('api/request-course-enrollment/', views.request_course_enrollment, name='request_course_enrollment'),
     path('api/check-course-enrollment/', views.check_course_enrollment_status, name='check_course_enrollment_status'),
+    path('api/schedule-course/', views.schedule_course, name='schedule_course'),
     path('debug/enrollment/', views.debug_enrollment, name='debug_enrollment'),
 
 ]

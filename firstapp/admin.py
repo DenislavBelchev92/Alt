@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.utils import timezone
 from .models import (
     AltUser, Profile, SkillGroup, SkillSubgroup, SkillName, Skill, 
-    CourseEnrollmentRequest, ApprovedCourseEnrollment
+    CourseEnrollmentRequest, ApprovedCourseEnrollment, ScheduledCourse, CourseAttendance
 )
 
 # Register your models here.
@@ -62,6 +62,24 @@ class ApprovedCourseEnrollmentAdmin(admin.ModelAdmin):
     list_display = ['user', 'skill_group', 'skill_subgroup', 'skill_name', 'enrolled_at']
     list_filter = ['skill_group', 'enrolled_at']
     search_fields = ['user__username', 'skill_group', 'skill_subgroup', 'skill_name']
+    readonly_fields = ['enrolled_at']
+
+@admin.register(ScheduledCourse)
+class ScheduledCourseAdmin(admin.ModelAdmin):
+    list_display = ['__str__', 'instructor', 'scheduled_date', 'scheduled_time', 'max_students', 'enrolled_count']
+    list_filter = ['skill_group', 'scheduled_date', 'instructor']
+    search_fields = ['skill_group', 'skill_subgroup', 'skill_name', 'instructor__username']
+    readonly_fields = ['created_at']
+    
+    def enrolled_count(self, obj):
+        return obj.courseattendance_set.count()
+    enrolled_count.short_description = 'Enrolled Students'
+
+@admin.register(CourseAttendance)
+class CourseAttendanceAdmin(admin.ModelAdmin):
+    list_display = ['student', 'scheduled_course', 'enrolled_at', 'attended']
+    list_filter = ['attended', 'enrolled_at', 'scheduled_course__scheduled_date']
+    search_fields = ['student__username', 'scheduled_course__skill_group']
     readonly_fields = ['enrolled_at']
 
 admin.site.register(SkillGroup)

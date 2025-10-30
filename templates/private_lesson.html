@@ -139,33 +139,23 @@
                         </div>
 
                         <!-- Preferred Schedule -->
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="preferred_day" class="font-weight-bold">
-                                        <i class="fas fa-calendar mr-1"></i>Preferred Day
-                                    </label>
-                                    <select class="form-control" id="preferred_day" name="preferred_day">
-                                        <option value="">Any day works</option>
-                                        <option value="weekdays">Weekdays (Mon-Fri)</option>
-                                        <option value="weekends">Weekends (Sat-Sun)</option>
-                                        <option value="specific">Specific day (mention in message)</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="preferred_time" class="font-weight-bold">
-                                        <i class="fas fa-clock mr-1"></i>Preferred Time
-                                    </label>
-                                    <select class="form-control" id="preferred_time" name="preferred_time">
-                                        <option value="">Any time works</option>
-                                        <option value="morning">Morning (9AM - 12PM)</option>
-                                        <option value="afternoon">Afternoon (12PM - 5PM)</option>
-                                        <option value="evening">Evening (5PM - 8PM)</option>
-                                    </select>
-                                </div>
-                            </div>
+                        <div class="form-group">
+                            <label for="time_slot" class="font-weight-bold">
+                                <i class="fas fa-calendar-check mr-1"></i>Select Available Time Slot
+                            </label>
+                            <select class="form-control" id="time_slot" name="time_slot" required>
+                                <option value="">Choose an available time slot...</option>
+                                {% for slot in available_slots %}
+                                    <option value="{{ slot.date_str }}|{{ slot.time_str }}">{{ slot.display }}</option>
+                                {% endfor %}
+                            </select>
+                            <small class="form-text text-muted">
+                                <i class="fas fa-info-circle mr-1"></i>
+                                Private lessons are available weekdays from 7:00-8:00 PM and 8:00-9:00 PM only.
+                                {% if not available_slots %}
+                                    <br><span class="text-warning">No time slots available. Please check back later.</span>
+                                {% endif %}
+                            </small>
                         </div>
 
                         <!-- Submit Button -->

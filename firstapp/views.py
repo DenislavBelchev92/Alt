@@ -7,7 +7,7 @@ from django.contrib import messages
 from django.http import JsonResponse
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
-from .models import Skill, SkillName, CourseEnrollmentRequest, ApprovedCourseEnrollment
+from .models import Skill, SkillName, CourseEnrollmentRequest, ApprovedCourseEnrollment, ScheduledCourse, CourseAttendance
 from .forms import SkillForm, ProfileForm
 import yaml
 import os
@@ -26,11 +26,53 @@ def load_skills_yaml():
         return []
 
 def index(request):
-    message = "Hello"
-    extra_message = "^_^"
-    return render(request, 'index.html', {\
-        'message': message,
-        'extra_message': extra_message})
+    """Display main page with upcoming scheduled courses"""
+    from datetime import date, timedelta
+    
+    # Get the selected week from the request, default to current week
+    selected_date = request.GET.get('week')
+    if selected_date:
+        try:
+            current_date = date.fromisoformat(selected_date)
+        except ValueError:
+            current_date = date.today()
+    else:
+        current_date = date.today()
+    
+    # Calculate the start of the week (Monday)
+    days_since_monday = current_date.weekday()
+    week_start = current_date - timedelta(days=days_since_monday)
+    week_end = week_start + timedelta(days=6)
+    
+    # Get scheduled courses for the selected week
+    upcoming_courses = ScheduledCourse.objects.filter(
+        scheduled_date__gte=week_start,
+        scheduled_date__lte=week_end,
+        is_active=True
+    ).order_by('scheduled_date', 'scheduled_time')
+    
+    # Group courses by date for better display
+    courses_by_date = {}
+    for course in upcoming_courses:
+        date_str = course.scheduled_date.strftime('%Y-%m-%d')
+        if date_str not in courses_by_date:
+            courses_by_date[date_str] = []
+        courses_by_date[date_str].append(course)
+    
+    # Calculate navigation dates
+    prev_week = week_start - timedelta(days=7)
+    next_week = week_start + timedelta(days=7)
+    
+    return render(request, 'index.html', {
+        'upcoming_courses': upcoming_courses,
+        'courses_by_date': courses_by_date,
+        'week_start': week_start,
+        'week_end': week_end,
+        'current_date': current_date,
+        'prev_week': prev_week,
+        'next_week': next_week,
+        'selected_week': week_start.strftime('%Y-%m-%d'),
+    })
 
 def lessons(request, group_name, subgroup_name, skill_name):
     """Display lessons for a specific skill"""
@@ -57,6 +99,57 @@ def lessons(request, group_name, subgroup_name, skill_name):
 def private_lesson(request):
     """Handle private lesson booking requests"""
     from .forms import PrivateLessonForm
+    from datetime import datetime, date, timedelta, time
+    import json
+    
+    # Generate available time slots for the next 4 weeks (weekdays 7-8PM and 8-9PM)
+    available_slots = []
+    today = date.today()
+    
+    for week in range(4):  # Next 4 weeks
+        week_start = today + timedelta(weeks=week)
+        # Find Monday of this week
+        days_since_monday = week_start.weekday()
+        monday = week_start - timedelta(days=days_since_monday)
+        
+        for day in range(5):  # Monday to Friday (0-4)
+            slot_date = monday + timedelta(days=day)
+            if slot_date >= today:  # Only future dates
+                # Check if slots are already booked
+                time_7pm = time(19, 0)  # 7:00 PM
+                time_8pm = time(20, 0)  # 8:00 PM
+                
+                slot_7pm_available = not ScheduledCourse.objects.filter(
+                    skill_group="Private Lesson",
+                    scheduled_date=slot_date,
+                    scheduled_time=time_7pm,
+                    is_active=True
+                ).exists()
+                
+                slot_8pm_available = not ScheduledCourse.objects.filter(
+                    skill_group="Private Lesson", 
+                    scheduled_date=slot_date,
+                    scheduled_time=time_8pm,
+                    is_active=True
+                ).exists()
+                
+                if slot_7pm_available:
+                    available_slots.append({
+                        'date': slot_date,
+                        'time': time_7pm,
+                        'date_str': slot_date.isoformat(),
+                        'time_str': time_7pm.isoformat(),
+                        'display': f"{slot_date.strftime('%A, %B %d, %Y')} - 7:00 PM - 8:00 PM"
+                    })
+                
+                if slot_8pm_available:
+                    available_slots.append({
+                        'date': slot_date,
+                        'time': time_8pm,
+                        'date_str': slot_date.isoformat(),
+                        'time_str': time_8pm.isoformat(),
+                        'display': f"{slot_date.strftime('%A, %B %d, %Y')} - 8:00 PM - 9:00 PM"
+                    })
     
     if request.method == 'POST':
         form = PrivateLessonForm(request.POST)
@@ -69,29 +162,90 @@ def private_lesson(request):
         phone = request.POST.get('phone', '')
         experience_level = request.POST.get('experience_level', '')
         message = request.POST.get('message', '')
-        preferred_day = request.POST.get('preferred_day', '')
-        preferred_time = request.POST.get('preferred_time', '')
+        selected_slot = request.POST.get('time_slot', '')
         
-        if form.is_valid():
-            selected_skill = form.cleaned_data['skill']
-            
-            # Here you could save to database, send email, etc.
-            # For now, just show a success message
-            
-            skill_display = selected_skill.split('|')[-1] if selected_skill else "Selected Skill"
-            
-            messages.success(request, 
-                f"Thank you {parent_name}! We've received your private lesson request for {student_name} "
-                f"in {skill_display}. We'll contact you at {contact_email} within 24 hours to schedule the lesson.")
-            
-            # Redirect to avoid re-submission on refresh
-            return redirect('private_lesson')
+        if form.is_valid() and selected_slot:
+            try:
+                # Debug: Print the selected slot value
+                print(f"DEBUG: Selected slot value: '{selected_slot}'")
+                
+                # Parse the selected slot
+                slot_parts = selected_slot.split('|')
+                print(f"DEBUG: Slot parts: {slot_parts}")
+                
+                if len(slot_parts) != 2:
+                    raise ValueError(f"Invalid slot format: {slot_parts}")
+                
+                slot_date = date.fromisoformat(slot_parts[0])
+                slot_time = time.fromisoformat(slot_parts[1])
+                
+                print(f"DEBUG: Parsed date: {slot_date}, time: {slot_time}")
+                
+                selected_skill = form.cleaned_data['skill']
+                skill_display = selected_skill.split('|')[-1] if selected_skill else "General Skills"
+                
+                # Create instructor user (you might want to assign a specific instructor)
+                instructor = request.user if request.user.is_authenticated and request.user.is_staff else None
+                if not instructor:
+                    # Get a default instructor or create one
+                    from django.contrib.auth import get_user_model
+                    User = get_user_model()
+                    instructor = User.objects.filter(is_staff=True).first()
+                    if not instructor:
+                        # Create a default private lesson instructor
+                        instructor = User.objects.create_user(
+                            username='private_instructor',
+                            email='instructor@alt-project.com',
+                            first_name='Private',
+                            last_name='Instructor',
+                            is_staff=True
+                        )
+                
+                # Create the scheduled private lesson
+                scheduled_lesson = ScheduledCourse.objects.create(
+                    skill_group="Private Lesson",
+                    skill_subgroup=skill_display,
+                    skill_name=f"{student_name} ({experience_level})",
+                    scheduled_date=slot_date,
+                    scheduled_time=slot_time,
+                    instructor=instructor,
+                    max_students=1,  # Private lesson = 1 student max
+                    is_active=True
+                )
+                
+                # If user is authenticated, enroll them automatically
+                if request.user.is_authenticated:
+                    from .models import CourseAttendance
+                    CourseAttendance.objects.create(
+                        student=request.user,
+                        scheduled_course=scheduled_lesson
+                    )
+                
+                messages.success(request, 
+                    f"Thank you {parent_name}! Your private lesson for {student_name} "
+                    f"in {skill_display} has been scheduled for {slot_date.strftime('%A, %B %d, %Y')} "
+                    f"from {slot_time.strftime('%I:%M %p')} to {(datetime.combine(slot_date, slot_time) + timedelta(hours=1)).strftime('%I:%M %p')}. "
+                    f"We'll contact you at {contact_email} with additional details.")
+                
+                # Redirect to avoid re-submission on refresh
+                return redirect('private_lesson')
+            except (ValueError, IndexError) as e:
+                print(f"DEBUG: Error parsing slot: {e}")
+                messages.error(request, f"Invalid time slot selected: {e}. Please choose a valid time slot.")
         else:
-            messages.error(request, "Please correct the errors below and try again.")
+            if not selected_slot:
+                messages.error(request, "Please select a time slot for your private lesson.")
+            else:
+                print(f"DEBUG: Form errors: {form.errors}")
+                print(f"DEBUG: Selected slot when form invalid: '{selected_slot}'")
+                messages.error(request, "Please correct the errors below and try again.")
     else:
         form = PrivateLessonForm()
     
-    return render(request, 'private_lesson.html', {'form': form})
+    return render(request, 'private_lesson.html', {
+        'form': form, 
+        'available_slots': available_slots
+    })
 
 def register(request):
     if request.method == "POST":
@@ -208,7 +362,7 @@ def update_skill(request, skill_id):
             skill.level = max(skill.level - 1, 0)
         
         skill.save()
-        messages.success(request, f"Updated {skill_name} level to {level}")
+        messages.success(request, f"Updated {skill.name.name} level to {skill.level}")
     
     return redirect("profile")
 
@@ -466,4 +620,55 @@ def debug_enrollment(request):
             'total_requests': CourseEnrollmentRequest.objects.count(),
             'user_requests': CourseEnrollmentRequest.objects.filter(user=request.user).count() if request.user.is_authenticated else 0
         })
+
+@staff_member_required
+@require_http_methods(["POST"])
+def schedule_course(request):
+    """Schedule an approved course for a specific date and time"""
+    try:
+        data = json.loads(request.body)
+        skill_group = data.get('skill_group')
+        skill_subgroup = data.get('skill_subgroup')
+        skill_name = data.get('skill_name')
+        scheduled_date = data.get('date')  # Changed from 'scheduled_date' to 'date'
+        scheduled_time = data.get('time')  # Changed from 'scheduled_time' to 'time'
+        max_students = data.get('max_students', 20)
+        
+        if not all([skill_group, skill_subgroup, skill_name, scheduled_date, scheduled_time]):
+            return JsonResponse({'success': False, 'error': 'Missing required parameters'})
+        
+        # Check if this course is already scheduled for this date/time
+        existing_schedule = ScheduledCourse.objects.filter(
+            skill_group=skill_group,
+            skill_subgroup=skill_subgroup,
+            skill_name=skill_name,
+            scheduled_date=scheduled_date,
+            scheduled_time=scheduled_time
+        ).first()
+        
+        if existing_schedule:
+            return JsonResponse({
+                'success': False,
+                'error': 'This course is already scheduled for this date and time'
+            })
+        
+        # Create the scheduled course
+        scheduled_course = ScheduledCourse.objects.create(
+            skill_group=skill_group,
+            skill_subgroup=skill_subgroup,
+            skill_name=skill_name,
+            scheduled_date=scheduled_date,
+            scheduled_time=scheduled_time,
+            instructor=request.user,
+            max_students=max_students
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Course scheduled successfully for {scheduled_date} at {scheduled_time}',
+            'course_id': scheduled_course.id
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
 
