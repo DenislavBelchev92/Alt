@@ -1,6 +1,9 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
+# Constants
+MAX_PARTICIPANTS_PER_COURSE = 16
+
 def user_profile_picture_path(instance, filename):
     """Generate upload path for user profile pictures"""
     return f'profile_pics/{instance.user.username}_{filename}'
@@ -33,21 +36,21 @@ class Profile(models.Model):
         return self.user.username
     
 class SkillGroup(models.Model):
-    name = models.CharField(max_length=100)
+    name = models.CharField(max_length=200)
 
     def __str__(self):
         return self.name
 
 class SkillSubgroup(models.Model):
     group = models.ForeignKey(SkillGroup, on_delete=models.CASCADE, related_name='skill_subgroups')
-    name = models.CharField(max_length=100)
+    name = models.CharField(max_length=200)
 
     def __str__(self):
         return f"{self.name}"
 
 class SkillName(models.Model):
     subgroup = models.ForeignKey(SkillSubgroup, on_delete=models.CASCADE, related_name='skill_names')
-    name = models.CharField(max_length=100)
+    name = models.CharField(max_length=200)
 
     def __str__(self):
         return f"{self.name}"
@@ -73,9 +76,9 @@ class CourseEnrollmentRequest(models.Model):
     ]
     
     user = models.ForeignKey(AltUser, on_delete=models.CASCADE, related_name='enrollment_requests')
-    skill_group = models.CharField(max_length=100)  # e.g., "Math"
-    skill_subgroup = models.CharField(max_length=100)  # e.g., "Practical Math"
-    skill_name = models.CharField(max_length=100)  # e.g., "Money and Shopping"
+    skill_group = models.CharField(max_length=200)  # e.g., "Math"
+    skill_subgroup = models.CharField(max_length=200)  # e.g., "Practical Math"
+    skill_name = models.CharField(max_length=200)  # e.g., "Money and Shopping"
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
     requested_at = models.DateTimeField(auto_now_add=True)
     reviewed_at = models.DateTimeField(null=True, blank=True)
@@ -96,9 +99,9 @@ class CourseEnrollmentRequest(models.Model):
 class ApprovedCourseEnrollment(models.Model):
     """Track users who have been approved and enrolled in courses"""
     user = models.ForeignKey(AltUser, on_delete=models.CASCADE, related_name='approved_enrollments')
-    skill_group = models.CharField(max_length=100)
-    skill_subgroup = models.CharField(max_length=100)
-    skill_name = models.CharField(max_length=100)
+    skill_group = models.CharField(max_length=200)
+    skill_subgroup = models.CharField(max_length=200)
+    skill_name = models.CharField(max_length=200)
     enrollment_request = models.OneToOneField(CourseEnrollmentRequest, on_delete=models.CASCADE, related_name='approved_enrollment')
     enrolled_at = models.DateTimeField(auto_now_add=True)
     
@@ -108,6 +111,36 @@ class ApprovedCourseEnrollment(models.Model):
     
     def __str__(self):
         return f"{self.user.username} enrolled in {self.skill_group}/{self.skill_subgroup}/{self.skill_name}"
+    
+    @classmethod
+    def get_course_count(cls, skill_group, skill_subgroup, skill_name):
+        """Get the number of approved enrollments for a specific course"""
+        return cls.objects.filter(
+            skill_group=skill_group,
+            skill_subgroup=skill_subgroup,
+            skill_name=skill_name
+        ).count()
+    
+    @classmethod
+    def get_course_participants(cls, skill_group, skill_subgroup, skill_name):
+        """Get all approved participants for a specific course with their enrollment details"""
+        return cls.objects.filter(
+            skill_group=skill_group,
+            skill_subgroup=skill_subgroup,
+            skill_name=skill_name
+        ).select_related('user', 'enrollment_request').order_by('enrolled_at')
+    
+    @classmethod
+    def can_add_participant(cls, skill_group, skill_subgroup, skill_name):
+        """Check if more participants can be added to a course"""
+        current_count = cls.get_course_count(skill_group, skill_subgroup, skill_name)
+        return current_count < MAX_PARTICIPANTS_PER_COURSE
+    
+    @classmethod
+    def get_available_spots(cls, skill_group, skill_subgroup, skill_name):
+        """Get the number of available spots for a course"""
+        current_count = cls.get_course_count(skill_group, skill_subgroup, skill_name)
+        return MAX_PARTICIPANTS_PER_COURSE - current_count
 
 class ScheduledCourse(models.Model):
     """Track scheduled courses with specific dates and times"""
@@ -121,9 +154,9 @@ class ScheduledCourse(models.Model):
         (6, 'Sunday'),
     ]
     
-    skill_group = models.CharField(max_length=100)
-    skill_subgroup = models.CharField(max_length=100)
-    skill_name = models.CharField(max_length=100)
+    skill_group = models.CharField(max_length=200)
+    skill_subgroup = models.CharField(max_length=200)
+    skill_name = models.CharField(max_length=200)
     scheduled_date = models.DateField()
     scheduled_time = models.TimeField()
     instructor = models.ForeignKey(AltUser, on_delete=models.CASCADE, related_name='scheduled_courses')

@@ -1,0 +1,249 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ course_name }} - Course Management{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="mb-0">
+                    <i class="fas fa-graduation-cap mr-2"></i>{{ course_name }}
+                </h2>
+                <a href="{% url 'course_management' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left mr-1"></i>Back to Course Management
+                </a>
+            </div>
+
+            <!-- Course Overview -->
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="card bg-primary text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4 class="mb-0">{{ participant_count }}</h4>
+                                    <p class="mb-0">Approved Participants</p>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-users fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card bg-success text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4 class="mb-0">{{ available_spots }}</h4>
+                                    <p class="mb-0">Available Spots</p>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-plus-circle fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card bg-info text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4 class="mb-0">{{ max_participants }}</h4>
+                                    <p class="mb-0">Maximum Capacity</p>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-limit fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Upcoming Scheduled Courses -->
+            <div class="card mb-4">
+                <div class="card-header bg-warning text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-calendar-alt mr-2"></i>Upcoming Course Sessions
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if has_upcoming_courses %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="thead-dark">
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Time</th>
+                                        <th>Instructor</th>
+                                        <th>Enrolled Students</th>
+                                        <th>Capacity</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for course_data in upcoming_courses %}
+                                    <tr>
+                                        <td>
+                                            <strong>{{ course_data.course.scheduled_date|date:"M d, Y" }}</strong>
+                                            <br>
+                                            <small class="text-muted">{{ course_data.course.scheduled_date|date:"l" }}</small>
+                                        </td>
+                                        <td>
+                                            <strong>{{ course_data.course.scheduled_time|time:"H:i" }}</strong>
+                                        </td>
+                                        <td>
+                                            {{ course_data.course.instructor.first_name }} {{ course_data.course.instructor.last_name|default:course_data.course.instructor.username }}
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <span class="badge {% if course_data.enrolled_count >= course_data.course.max_students %}badge-danger{% elif course_data.enrolled_count >= 12 %}badge-warning{% else %}badge-primary{% endif %} mr-2">
+                                                    {{ course_data.enrolled_count }}/{{ course_data.course.max_students }}
+                                                </span>
+                                                {% if course_data.attendees %}
+                                                <button class="btn btn-sm btn-outline-info" type="button" data-toggle="collapse" data-target="#attendees-{{ forloop.counter }}" aria-expanded="false">
+                                                    <i class="fas fa-eye mr-1"></i>View
+                                                </button>
+                                                {% endif %}
+                                            </div>
+                                            {% if course_data.attendees %}
+                                            <div class="collapse mt-2" id="attendees-{{ forloop.counter }}">
+                                                <div class="card card-body bg-light">
+                                                    <h6>Enrolled Students:</h6>
+                                                    {% for attendance in course_data.attendees %}
+                                                    <div class="d-flex justify-content-between align-items-center py-1 border-bottom">
+                                                        <div>
+                                                            <strong>{{ attendance.student.username }}</strong>
+                                                            {% if attendance.student.first_name %}
+                                                                <small class="text-muted">({{ attendance.student.first_name }} {{ attendance.student.last_name }})</small>
+                                                            {% endif %}
+                                                        </div>
+                                                        <div class="text-right">
+                                                            <small class="text-muted">Enrolled: {{ attendance.enrolled_at|date:"M d, Y H:i" }}</small>
+                                                            {% if attendance.attended %}
+                                                                <br><span class="badge badge-success">Attended</span>
+                                                            {% endif %}
+                                                        </div>
+                                                    </div>
+                                                    {% endfor %}
+                                                </div>
+                                            </div>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if course_data.available_spots > 0 %}
+                                                <span class="badge badge-success">{{ course_data.available_spots }} spots</span>
+                                            {% else %}
+                                                <span class="badge badge-danger">FULL</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if course_data.course.scheduled_date == today %}
+                                                <span class="badge badge-warning">Today</span>
+                                            {% elif course_data.course.scheduled_date > today %}
+                                                <span class="badge badge-info">Upcoming</span>
+                                            {% else %}
+                                                <span class="badge badge-secondary">Past</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">No Upcoming Sessions</h5>
+                            <p class="text-muted">No course sessions have been scheduled for this skill yet.</p>
+                            <a href="{% url 'course_management' %}" class="btn btn-primary">
+                                <i class="fas fa-calendar-plus mr-1"></i>Schedule New Session
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Approved Participants List -->
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-users mr-2"></i>All Approved Participants
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if participants %}
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead class="thead-dark">
+                                    <tr>
+                                        <th>Student</th>
+                                        <th>Application Date</th>
+                                        <th>Approval Date</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for participant in participants %}
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="avatar-sm bg-primary text-white rounded-circle d-flex align-items-center justify-content-center mr-2">
+                                                    {{ participant.user.username|first|upper }}
+                                                </div>
+                                                <div>
+                                                    <strong>{{ participant.user.username }}</strong>
+                                                    {% if participant.user.first_name %}
+                                                        <br><small class="text-muted">{{ participant.user.first_name }} {{ participant.user.last_name }}</small>
+                                                    {% endif %}
+                                                    {% if participant.user.email %}
+                                                        <br><small class="text-muted">{{ participant.user.email }}</small>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <small>{{ participant.enrollment_request.requested_at|date:"M d, Y" }}</small>
+                                            <br>
+                                            <small class="text-muted">{{ participant.enrollment_request.requested_at|time:"H:i" }}</small>
+                                        </td>
+                                        <td>
+                                            <small>{{ participant.enrolled_at|date:"M d, Y" }}</small>
+                                            <br>
+                                            <small class="text-muted">{{ participant.enrolled_at|time:"H:i" }}</small>
+                                        </td>
+                                        <td>
+                                            <span class="badge badge-success">Approved</span>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-user-times fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">No Participants</h5>
+                            <p class="text-muted">No students have been approved for this course yet.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.avatar-sm {
+    width: 32px;
+    height: 32px;
+    font-size: 12px;
+    font-weight: bold;
+}
+</style>
+{% endblock %}

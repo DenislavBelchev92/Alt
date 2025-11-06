@@ -20,6 +20,9 @@ urlpatterns = [
     path('api/request-course-enrollment/', views.request_course_enrollment, name='request_course_enrollment'),
     path('api/check-course-enrollment/', views.check_course_enrollment_status, name='check_course_enrollment_status'),
     path('api/schedule-course/', views.schedule_course, name='schedule_course'),
+    path('api/get-existing-sessions/', views.get_existing_sessions, name='get_existing_sessions'),
+    path('api/add-to-existing-session/', views.add_to_existing_session, name='add_to_existing_session'),
     path('debug/enrollment/', views.debug_enrollment, name='debug_enrollment'),
+    path('course-admin/<path:skill_group>/<path:skill_subgroup>/<path:skill_name>/', views.course_detail, name='course_detail'),
 
 ]

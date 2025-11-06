@@ -7,7 +7,7 @@ from django.contrib import messages
 from django.http import JsonResponse
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
-from .models import Skill, SkillName, CourseEnrollmentRequest, ApprovedCourseEnrollment, ScheduledCourse, CourseAttendance
+from .models import Skill, SkillName, CourseEnrollmentRequest, ApprovedCourseEnrollment, ScheduledCourse, CourseAttendance, MAX_PARTICIPANTS_PER_COURSE
 from .forms import SkillForm, ProfileForm
 import yaml
 import os
@@ -439,18 +439,50 @@ def course_management(request):
         status__in=['approved', 'rejected']
     ).order_by('-reviewed_at')[:20]
     
+    # Group approved courses by skill combination with counters
+    approved_courses = {}
+    approved_enrollments = ApprovedCourseEnrollment.objects.all().select_related('user', 'enrollment_request')
+    
+    for enrollment in approved_enrollments:
+        course_key = f"{enrollment.skill_group}|{enrollment.skill_subgroup}|{enrollment.skill_name}"
+        
+        if course_key not in approved_courses:
+            approved_courses[course_key] = {
+                'skill_group': enrollment.skill_group,
+                'skill_subgroup': enrollment.skill_subgroup,
+                'skill_name': enrollment.skill_name,
+                'course_full_name': f"{enrollment.skill_group} > {enrollment.skill_subgroup} > {enrollment.skill_name}",
+                'participants': [],
+                'count': 0,
+                'available_spots': MAX_PARTICIPANTS_PER_COURSE
+            }
+        
+        approved_courses[course_key]['participants'].append({
+            'user': enrollment.user,
+            'enrollment_request': enrollment.enrollment_request,
+            'enrolled_at': enrollment.enrolled_at
+        })
+        approved_courses[course_key]['count'] += 1
+        approved_courses[course_key]['available_spots'] = MAX_PARTICIPANTS_PER_COURSE - approved_courses[course_key]['count']
+    
+    # Convert to list for template
+    approved_courses_list = list(approved_courses.values())
+    
     # Get statistics
     stats = {
         'pending_count': CourseEnrollmentRequest.objects.filter(status='pending').count(),
         'approved_count': CourseEnrollmentRequest.objects.filter(status='approved').count(),
         'rejected_count': CourseEnrollmentRequest.objects.filter(status='rejected').count(),
         'total_enrolled': ApprovedCourseEnrollment.objects.count(),
+        'unique_courses': len(approved_courses),
     }
     
     context = {
         'pending_requests': pending_requests,
         'recent_reviewed': recent_reviewed,
+        'approved_courses': approved_courses_list,
         'stats': stats,
+        'MAX_PARTICIPANTS': MAX_PARTICIPANTS_PER_COURSE,
     }
     
     return render(request, 'admin/course_management.html', context)
@@ -475,8 +507,19 @@ def process_enrollment_request(request, request_id):
         enrollment_request.admin_notes = admin_notes
         enrollment_request.save()
         
-        # If approved, create the enrollment record
+        # If approved, check if there's space and create the enrollment record
         if action == 'approve':
+            # Check if course has available spots
+            if not ApprovedCourseEnrollment.can_add_participant(
+                enrollment_request.skill_group, 
+                enrollment_request.skill_subgroup, 
+                enrollment_request.skill_name
+            ):
+                return JsonResponse({
+                    'success': False, 
+                    'error': f'Course is full! Maximum {MAX_PARTICIPANTS_PER_COURSE} participants allowed.'
+                })
+            
             ApprovedCourseEnrollment.objects.create(
                 user=enrollment_request.user,
                 skill_group=enrollment_request.skill_group,
@@ -663,10 +706,194 @@ def schedule_course(request):
             max_students=max_students
         )
         
+        # Only enroll approved participants who aren't already enrolled in ANY session for this course
+        approved_participants = ApprovedCourseEnrollment.objects.filter(
+            skill_group=skill_group,
+            skill_subgroup=skill_subgroup,
+            skill_name=skill_name
+        )
+        
+        enrolled_count = 0
+        for participant in approved_participants:
+            # Check if this participant is already enrolled in ANY session for this course
+            existing_enrollment = CourseAttendance.objects.filter(
+                student=participant.user,
+                scheduled_course__skill_group=skill_group,
+                scheduled_course__skill_subgroup=skill_subgroup,
+                scheduled_course__skill_name=skill_name
+            ).exists()
+            
+            # Only enroll if they're not already enrolled in any session
+            if not existing_enrollment:
+                CourseAttendance.objects.create(
+                    student=participant.user,
+                    scheduled_course=scheduled_course,
+                    attended=False
+                )
+                enrolled_count += 1
+        
         return JsonResponse({
             'success': True,
-            'message': f'Course scheduled successfully for {scheduled_date} at {scheduled_time}',
+            'message': f'Course scheduled successfully for {scheduled_date} at {scheduled_time}. {enrolled_count} students automatically enrolled.',
             'course_id': scheduled_course.id
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+@staff_member_required
+def course_detail(request, skill_group, skill_subgroup, skill_name):
+    """Admin-only view to show detailed course information with upcoming dates and participants"""
+    
+    # Get all approved participants for this course
+    participants = ApprovedCourseEnrollment.get_course_participants(skill_group, skill_subgroup, skill_name)
+    participant_count = participants.count()
+    available_spots = ApprovedCourseEnrollment.get_available_spots(skill_group, skill_subgroup, skill_name)
+    
+    # Get upcoming scheduled courses for this skill
+    upcoming_courses = ScheduledCourse.objects.filter(
+        skill_group=skill_group,
+        skill_subgroup=skill_subgroup,
+        skill_name=skill_name,
+        scheduled_date__gte=timezone.now().date()
+    ).order_by('scheduled_date', 'scheduled_time')
+    
+    # For each scheduled course, get the attendance records
+    courses_with_attendance = []
+    for course in upcoming_courses:
+        attendees = CourseAttendance.objects.filter(
+            scheduled_course=course
+        ).select_related('student')
+        
+        courses_with_attendance.append({
+            'course': course,
+            'attendees': attendees,
+            'enrolled_count': attendees.count(),
+            'available_spots': course.max_students - attendees.count()
+        })
+    
+    course_name = f"{skill_group} > {skill_subgroup} > {skill_name}"
+    
+    context = {
+        'skill_group': skill_group,
+        'skill_subgroup': skill_subgroup,
+        'skill_name': skill_name,
+        'course_name': course_name,
+        'participants': participants,
+        'participant_count': participant_count,
+        'available_spots': available_spots,
+        'max_participants': MAX_PARTICIPANTS_PER_COURSE,
+        'upcoming_courses': courses_with_attendance,
+        'has_upcoming_courses': len(courses_with_attendance) > 0,
+        'today': timezone.now().date(),
+    }
+    
+    return render(request, 'course_detail.html', context)
+
+@staff_member_required
+def get_existing_sessions(request):
+    """Get existing scheduled sessions for a specific course"""
+    skill_group = request.GET.get('skill_group')
+    skill_subgroup = request.GET.get('skill_subgroup')
+    skill_name = request.GET.get('skill_name')
+    
+    if not all([skill_group, skill_subgroup, skill_name]):
+        return JsonResponse({'success': False, 'error': 'Missing required parameters'})
+    
+    # Get existing scheduled courses for this skill
+    scheduled_courses = ScheduledCourse.objects.filter(
+        skill_group=skill_group,
+        skill_subgroup=skill_subgroup,
+        skill_name=skill_name,
+        scheduled_date__gte=timezone.now().date()  # Only future sessions
+    ).order_by('scheduled_date', 'scheduled_time')
+    
+    sessions = []
+    for course in scheduled_courses:
+        enrolled_count = CourseAttendance.objects.filter(scheduled_course=course).count()
+        available_spots = course.max_students - enrolled_count
+        
+        # Only include sessions that have available spots
+        if available_spots > 0:
+            sessions.append({
+                'id': course.id,
+                'date': course.scheduled_date.strftime('%Y-%m-%d'),
+                'time': course.scheduled_time.strftime('%H:%M'),
+                'enrolled': enrolled_count,
+                'max_students': course.max_students,
+                'available_spots': available_spots
+            })
+    
+    return JsonResponse({
+        'success': True,
+        'sessions': sessions
+    })
+
+@staff_member_required  
+@require_http_methods(["POST"])
+def add_to_existing_session(request):
+    """Add approved participants to an existing scheduled session"""
+    try:
+        data = json.loads(request.body)
+        session_id = data.get('session_id')
+        skill_group = data.get('skill_group')
+        skill_subgroup = data.get('skill_subgroup')
+        skill_name = data.get('skill_name')
+        
+        if not all([session_id, skill_group, skill_subgroup, skill_name]):
+            return JsonResponse({'success': False, 'error': 'Missing required parameters'})
+        
+        # Get the scheduled course
+        try:
+            scheduled_course = ScheduledCourse.objects.get(id=session_id)
+        except ScheduledCourse.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Scheduled course not found'})
+        
+        # Get approved participants who are not yet enrolled in this session
+        approved_participants = ApprovedCourseEnrollment.objects.filter(
+            skill_group=skill_group,
+            skill_subgroup=skill_subgroup,
+            skill_name=skill_name
+        )
+        
+        # Get already enrolled participants for this session
+        already_enrolled = CourseAttendance.objects.filter(
+            scheduled_course=scheduled_course
+        ).values_list('student_id', flat=True)
+        
+        # Filter out already enrolled participants
+        new_participants = approved_participants.exclude(user_id__in=already_enrolled)
+        
+        if not new_participants.exists():
+            return JsonResponse({
+                'success': False, 
+                'error': 'No new participants to add. All approved participants are already enrolled in this session.'
+            })
+        
+        # Check if there's enough space
+        current_enrolled = len(already_enrolled)
+        new_count = new_participants.count()
+        
+        if current_enrolled + new_count > scheduled_course.max_students:
+            available_spots = scheduled_course.max_students - current_enrolled
+            return JsonResponse({
+                'success': False,
+                'error': f'Not enough space. Only {available_spots} spots available, but trying to add {new_count} participants.'
+            })
+        
+        # Enroll new participants
+        enrolled_count = 0
+        for participant in new_participants:
+            CourseAttendance.objects.create(
+                student=participant.user,
+                scheduled_course=scheduled_course,
+                attended=False
+            )
+            enrolled_count += 1
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Successfully added {enrolled_count} participants to the session on {scheduled_course.scheduled_date} at {scheduled_course.scheduled_time}.'
         })
         
     except Exception as e:

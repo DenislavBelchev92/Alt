@@ -78,7 +78,14 @@
                   {% for course in upcoming_courses %}
                   <tr>
                     <td>
-                      <strong>{{ course.course_full_name }}</strong>
+                      {% if user.is_staff and course.skill_group != "Private Lesson" %}
+                        <a href="{% url 'course_detail' skill_group=course.skill_group skill_subgroup=course.skill_subgroup skill_name=course.skill_name %}" class="text-decoration-none">
+                          <strong class="text-primary">{{ course.course_full_name }}</strong>
+                          <i class="fas fa-external-link-alt fa-xs ml-1 text-muted"></i>
+                        </a>
+                      {% else %}
+                        <strong>{{ course.course_full_name }}</strong>
+                      {% endif %}
                       <br>
                       <small class="text-muted">
                         <span class="badge badge-secondary">{{ course.skill_group }}</span>

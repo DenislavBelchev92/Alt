@@ -75,6 +75,25 @@
                 </div>
             </div>
             
+            <!-- Second row of statistics -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card bg-purple text-white" style="background-color: #6f42c1 !important;">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4 class="mb-0">{{ stats.unique_courses }}</h4>
+                                    <p class="mb-0">Active Courses</p>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-graduation-cap fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
             <!-- Pending Requests -->
             <div class="card mb-4">
                 <div class="card-header bg-warning text-white">
@@ -157,43 +176,69 @@
                     </h5>
                 </div>
                 <div class="card-body">
-                    {% if recent_reviewed %}
+                    {% if approved_courses %}
                         <div class="table-responsive">
                             <table class="table table-striped table-hover">
                                 <thead class="thead-dark">
                                     <tr>
                                         <th>Course</th>
-                                        <th>Approved Date</th>
-                                        <th>Reviewed By</th>
+                                        <th>Participants</th>
+                                        <th>Available Spots</th>
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {% for request in recent_reviewed %}
-                                    {% if request.status == 'approved' %}
+                                    {% for course in approved_courses %}
                                     <tr>
                                         <td>
-                                            <strong>{{ request.course_full_name }}</strong>
+                                            <strong>{{ course.course_full_name }}</strong>
                                             <br>
                                             <small class="text-muted">
-                                                <span class="badge badge-secondary">{{ request.skill_group }}</span>
+                                                <span class="badge badge-secondary">{{ course.skill_group }}</span>
                                             </small>
                                         </td>
                                         <td>
-                                            <small>{{ request.reviewed_at|date:"M d, Y" }}</small>
-                                            <br>
-                                            <small class="text-muted">{{ request.reviewed_at|time:"H:i" }}</small>
+                                            <div class="d-flex align-items-center">
+                                                <span class="badge {% if course.count >= MAX_PARTICIPANTS %}badge-danger{% elif course.count >= 12 %}badge-warning{% else %}badge-primary{% endif %} mr-2">
+                                                    {{ course.count }}/{{ MAX_PARTICIPANTS }}
+                                                </span>
+                                                <button class="btn btn-sm btn-outline-info" type="button" data-toggle="collapse" data-target="#participants-{{ forloop.counter }}" aria-expanded="false">
+                                                    <i class="fas fa-users mr-1"></i>View List
+                                                </button>
+                                            </div>
+                                            <div class="collapse mt-2" id="participants-{{ forloop.counter }}">
+                                                <div class="card card-body bg-light">
+                                                    <h6>Enrolled Participants:</h6>
+                                                    {% for participant in course.participants %}
+                                                    <div class="d-flex justify-content-between align-items-center py-1 border-bottom">
+                                                        <div>
+                                                            <strong>{{ participant.user.username }}</strong>
+                                                            {% if participant.user.first_name %}
+                                                                <small class="text-muted">({{ participant.user.first_name }} {{ participant.user.last_name }})</small>
+                                                            {% endif %}
+                                                        </div>
+                                                        <div class="text-right">
+                                                            <small class="text-muted">Applied: {{ participant.enrollment_request.requested_at|date:"M d, Y H:i" }}</small><br>
+                                                            <small class="text-success">Approved: {{ participant.enrolled_at|date:"M d, Y H:i" }}</small>
+                                                        </div>
+                                                    </div>
+                                                    {% endfor %}
+                                                </div>
+                                            </div>
                                         </td>
                                         <td>
-                                            <small>{{ request.reviewed_by.username|default:"-" }}</small>
+                                            {% if course.available_spots > 0 %}
+                                                <span class="badge badge-success">{{ course.available_spots }} spots</span>
+                                            {% else %}
+                                                <span class="badge badge-danger">FULL</span>
+                                            {% endif %}
                                         </td>
                                         <td>
-                                            <button class="btn btn-primary btn-sm" onclick="showScheduleModal('{{ request.skill_group }}', '{{ request.skill_subgroup }}', '{{ request.skill_name }}')">
+                                            <button class="btn btn-primary btn-sm" onclick="showScheduleModal('{{ course.skill_group }}', '{{ course.skill_subgroup }}', '{{ course.skill_name }}')">
                                                 <i class="fas fa-calendar-plus mr-1"></i>Schedule Course
                                             </button>
                                         </td>
                                     </tr>
-                                    {% endif %}
                                     {% endfor %}
                                 </tbody>
                             </table>
@@ -279,21 +324,46 @@
             <div class="modal-body">
                 <div id="course-info" class="mb-3">
                     <h6>Course: <span id="course-name"></span></h6>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        <strong>Maximum Students:</strong> 16 (automatically set)
+                    </div>
                 </div>
-                <form id="schedule-form">
+                <div id="schedule-form">
                     <div class="form-group">
-                        <label for="schedule-date">Date:</label>
-                        <input type="date" class="form-control" id="schedule-date" required>
+                        <label>Choose Option:</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="schedule-type" id="schedule-new" value="new" checked onclick="handleRadioChange()">
+                            <label class="form-check-label" for="schedule-new">
+                                Create New Session
+                            </label>
+                        </div>
+                        <div class="form-check" id="existing-session-option" style="display: none;">
+                            <input class="form-check-input" type="radio" name="schedule-type" id="schedule-existing" value="existing" onclick="handleRadioChange()">
+                            <label class="form-check-label" for="schedule-existing">
+                                Add to Existing Session
+                            </label>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label for="schedule-time">Time:</label>
-                        <input type="time" class="form-control" id="schedule-time" required>
+                    
+                    <div id="existing-sessions" class="form-group" style="display: none;">
+                        <label for="existing-session-select">Select Existing Session:</label>
+                        <select class="form-control" id="existing-session-select">
+                            <option value="">Choose an existing session...</option>
+                        </select>
                     </div>
-                    <div class="form-group">
-                        <label for="max-students">Maximum Students:</label>
-                        <input type="number" class="form-control" id="max-students" value="20" min="1" max="50" required>
+                    
+                    <div id="new-session-fields">
+                        <div class="form-group">
+                            <label for="schedule-date">Date:</label>
+                            <input type="date" class="form-control" id="schedule-date">
+                        </div>
+                        <div class="form-group">
+                            <label for="schedule-time">Time:</label>
+                            <input type="time" class="form-control" id="schedule-time">
+                        </div>
                     </div>
-                </form>
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
@@ -452,81 +522,214 @@ function showScheduleModal(skillGroup, skillSubgroup, skillName) {
         skillName: skillName
     };
     
-    const courseName = `${skillGroup} - ${skillSubgroup} - ${skillName}`;
+    var courseName = skillGroup + ' - ' + skillSubgroup + ' - ' + skillName;
     document.getElementById('course-name').textContent = courseName;
     
     // Set minimum date to today
-    const today = new Date().toISOString().split('T')[0];
+    var today = new Date().toISOString().split('T')[0];
     document.getElementById('schedule-date').setAttribute('min', today);
     
-    // Clear form
-    document.getElementById('schedule-form').reset();
-    document.getElementById('max-students').value = '20';
+    // Clear fields manually and reset to new session mode
+    document.getElementById('schedule-date').value = '';
+    document.getElementById('schedule-time').value = '';
+    document.getElementById('schedule-new').checked = true;
+    document.getElementById('new-session-fields').style.display = 'block';
+    document.getElementById('existing-sessions').style.display = 'none';
     
-    $('#scheduleModal').modal('show');
+    // Load existing sessions for this course
+    loadExistingSessions(skillGroup, skillSubgroup, skillName);
+    
+    // Show modal without jQuery
+    var modal = document.getElementById('scheduleModal');
+    modal.style.display = 'block';
+    modal.classList.add('show');
+}
+
+function loadExistingSessions(skillGroup, skillSubgroup, skillName) {
+    // Use jQuery AJAX instead of fetch for better compatibility
+    var url = '/api/get-existing-sessions/?skill_group=' + encodeURIComponent(skillGroup) + 
+              '&skill_subgroup=' + encodeURIComponent(skillSubgroup) + 
+              '&skill_name=' + encodeURIComponent(skillName);
+    
+    $.ajax({
+        url: url,
+        method: 'GET',
+        success: function(data) {
+            var select = document.getElementById('existing-session-select');
+            var existingOption = document.getElementById('existing-session-option');
+            
+            // Clear previous options
+            select.innerHTML = '<option value="">Choose an existing session...</option>';
+            
+            if (data.success && data.sessions.length > 0) {
+                // Populate dropdown with existing sessions
+                for (var i = 0; i < data.sessions.length; i++) {
+                    var session = data.sessions[i];
+                    var option = document.createElement('option');
+                    option.value = session.id;
+                    option.textContent = session.date + ' at ' + session.time + ' (' + session.enrolled + '/' + session.max_students + ' enrolled)';
+                    option.setAttribute('data-date', session.date);
+                    option.setAttribute('data-time', session.time);
+                    select.appendChild(option);
+                }
+                
+                // Show the "Add to Existing Session" option
+                existingOption.style.display = 'block';
+            } else {
+                // Hide the "Add to Existing Session" option if no sessions exist
+                existingOption.style.display = 'none';
+            }
+        },
+        error: function(xhr, status, error) {
+            console.error('Error loading existing sessions:', error);
+            document.getElementById('existing-session-option').style.display = 'none';
+        }
+    });
 }
 
 function confirmSchedule() {
-    const date = document.getElementById('schedule-date').value;
-    const time = document.getElementById('schedule-time').value;
-    const maxStudents = document.getElementById('max-students').value;
+    alert('confirmSchedule called');
+    
+    // Get which radio button is selected
+    var newRadio = document.getElementById('schedule-new');
+    var existingRadio = document.getElementById('schedule-existing');
+    
+    if (existingRadio && existingRadio.checked) {
+        // Adding to existing session
+        var sessionSelect = document.getElementById('existing-session-select');
+        var sessionId = sessionSelect.value;
+        
+        if (!sessionId) {
+            alert('Please select an existing session.');
+            return;
+        }
+        
+        // Call the add to existing session function
+        addToExistingSession(sessionId);
+        return;
+    }
+    
+    // Handle creating new session (original logic)
+    var date = document.getElementById('schedule-date').value;
+    var time = document.getElementById('schedule-time').value;
 
-    if (!date || !time || !maxStudents) {
+    if (!date || !time) {
         showAlert('Please fill in all fields.', 'warning');
         return;
     }
 
     // Validate date is not in the past
-    const selectedDateTime = new Date(date + 'T' + time);
-    const now = new Date();
+    var selectedDateTime = new Date(date + 'T' + time);
+    var now = new Date();
     
     if (selectedDateTime <= now) {
         showAlert('Please select a future date and time.', 'warning');
         return;
     }
 
-    const csrfTokenElement = document.querySelector('[name=csrfmiddlewaretoken]');
+    var csrfTokenElement = document.querySelector('[name=csrfmiddlewaretoken]');
     
     if (!csrfTokenElement) {
         showAlert('Security token not found. Please refresh the page.', 'danger');
         return;
     }
 
-    const csrfToken = csrfTokenElement.value;
+    var csrfToken = csrfTokenElement.value;
 
-    fetch('/api/schedule-course/', {
+    $.ajax({
+        url: '/api/schedule-course/',
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRFToken': csrfToken,
+            'X-CSRFToken': csrfToken
         },
-        body: JSON.stringify({
+        data: JSON.stringify({
             skill_group: currentCourseInfo.skillGroup,
             skill_subgroup: currentCourseInfo.skillSubgroup,
             skill_name: currentCourseInfo.skillName,
             date: date,
             time: time,
-            max_students: parseInt(maxStudents)
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            $('#scheduleModal').modal('hide');
-            showAlert('Course scheduled successfully!', 'success');
-            
-            // Refresh page to update the course list
-            setTimeout(() => {
-                location.reload();
-            }, 1500);
-        } else {
-            showAlert(data.error || 'Failed to schedule course', 'danger');
+            max_students: 16  // Always use 16 as maximum
+        }),
+        success: function(data) {
+            if (data.success) {
+                var modal = document.getElementById('scheduleModal');
+                modal.style.display = 'none';
+                modal.classList.remove('show');
+                showAlert('Course scheduled successfully!', 'success');
+                
+                // Refresh page to update the course list
+                setTimeout(function() {
+                    location.reload();
+                }, 1500);
+            } else {
+                showAlert(data.error || 'Failed to schedule course', 'danger');
+            }
+        },
+        error: function(xhr, status, error) {
+            console.error('Error:', error);
+            showAlert('An error occurred while scheduling the course.', 'danger');
         }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showAlert('An error occurred while scheduling the course.', 'danger');
     });
 }
+
+function addToExistingSession(sessionId) {
+    alert('addToExistingSession called with ID: ' + sessionId);
+    
+    var csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+    $.ajax({
+        url: '/api/add-to-existing-session/',
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
+        data: JSON.stringify({
+            session_id: parseInt(sessionId),
+            skill_group: currentCourseInfo.skillGroup,
+            skill_subgroup: currentCourseInfo.skillSubgroup,
+            skill_name: currentCourseInfo.skillName
+        }),
+        success: function(data) {
+            if (data.success) {
+                var modal = document.getElementById('scheduleModal');
+                modal.style.display = 'none';
+                modal.classList.remove('show');
+                showAlert(data.message || 'Participants added to existing session successfully!', 'success');
+                
+                // Refresh page to update the course list
+                setTimeout(function() {
+                    location.reload();
+                }, 1500);
+            } else {
+                showAlert(data.error || 'Failed to add participants to session', 'danger');
+            }
+        },
+        error: function(xhr, status, error) {
+            console.error('Error:', error);
+            showAlert('An error occurred while adding participants to the session.', 'danger');
+        }
+    });
+}
+
+// Simple radio button handlers
+function handleRadioChange() {
+    var newRadio = document.getElementById('schedule-new');
+    var existingRadio = document.getElementById('schedule-existing');
+    
+    if (newRadio.checked) {
+        document.getElementById('new-session-fields').style.display = 'block';
+        document.getElementById('existing-sessions').style.display = 'none';
+    } else if (existingRadio.checked) {
+        document.getElementById('new-session-fields').style.display = 'none';
+        document.getElementById('existing-sessions').style.display = 'block';
+    }
+}
+
+// Simple page ready function
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Course management page loaded');
+});
 </script>
 {% endblock %}
