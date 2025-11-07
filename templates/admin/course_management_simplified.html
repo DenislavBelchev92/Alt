@@ -1,0 +1,408 @@
+{% extends 'base.html' %}
+
+{% block title %}Course Management - Admin Panel{% endblock %}
+
+{% block content %}
+{% csrf_token %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h2 class="mb-4">
+                <i class="fas fa-graduation-cap mr-2"></i>Course Enrollment Management
+            </h2>
+            
+            <!-- Statistics Cards -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card bg-warning text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4 class="mb-0">{{ stats.pending_count }}</h4>
+                                    <p class="mb-0">Pending Requests</p>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-clock fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-success text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4 class="mb-0">{{ stats.approved_count }}</h4>
+                                    <p class="mb-0">Approved</p>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-check-circle fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-danger text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4 class="mb-0">{{ stats.rejected_count }}</h4>
+                                    <p class="mb-0">Rejected</p>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-times-circle fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-info text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4 class="mb-0">{{ stats.total_enrolled }}</h4>
+                                    <p class="mb-0">Total Enrolled</p>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-users fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Second row of statistics -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card bg-purple text-white" style="background-color: #6f42c1 !important;">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4 class="mb-0">{{ stats.unique_courses }}</h4>
+                                    <p class="mb-0">Active Courses</p>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-graduation-cap fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SIMPLIFIED: Keep all HTML structure the same, only simplify JavaScript -->
+
+<script>
+// ===== SIMPLIFIED JAVASCRIPT - NO JQUERY DEPENDENCIES =====
+
+// Global variables
+var currentRequestId = null;
+var currentCourseInfo = {};
+
+// Utility Functions
+function showAlert(message, type) {
+    var alertDiv = document.createElement('div');
+    alertDiv.className = 'alert alert-' + type + ' alert-dismissible fade show position-fixed';
+    alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    alertDiv.innerHTML = message + '<button type="button" class="close" onclick="this.parentElement.remove()"><span>&times;</span></button>';
+    
+    document.body.appendChild(alertDiv);
+    
+    // Auto-dismiss after 5 seconds
+    setTimeout(function() {
+        if (alertDiv && alertDiv.parentNode) {
+            alertDiv.parentNode.removeChild(alertDiv);
+        }
+    }, 5000);
+}
+
+function getCsrfToken() {
+    var tokenElement = document.querySelector('[name=csrfmiddlewaretoken]');
+    return tokenElement ? tokenElement.value : '';
+}
+
+// Modal Functions (Vanilla JS - No Bootstrap/jQuery dependencies)
+function showModal(modalId) {
+    var modal = document.getElementById(modalId);
+    modal.style.display = 'block';
+    modal.classList.add('show');
+    document.body.classList.add('modal-open');
+}
+
+function hideModal(modalId) {
+    var modal = document.getElementById(modalId);
+    modal.style.display = 'none';
+    modal.classList.remove('show');
+    document.body.classList.remove('modal-open');
+}
+
+// Request Processing Functions
+function processRequest(requestId, action, notes) {
+    var csrfToken = getCsrfToken();
+    if (!csrfToken) {
+        showAlert('Security token not found. Please refresh the page.', 'danger');
+        return;
+    }
+
+    // Use vanilla JavaScript fetch instead of jQuery
+    fetch('/course-management/process-enrollment/' + requestId + '/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({
+            action: action,
+            notes: notes
+        })
+    })
+    .then(function(response) {
+        return response.json();
+    })
+    .then(function(data) {
+        if (data.success) {
+            // Remove the row from the table
+            var row = document.getElementById('request-' + requestId);
+            if (row) {
+                row.remove();
+            }
+            
+            showAlert(data.message, 'success');
+            
+            // Refresh page to update statistics
+            setTimeout(function() {
+                location.reload();
+            }, 1500);
+        } else {
+            showAlert(data.error, 'danger');
+        }
+    })
+    .catch(function(error) {
+        console.error('Error:', error);
+        showAlert('An error occurred while processing the request.', 'danger');
+    });
+}
+
+function showRejectModal(requestId) {
+    currentRequestId = requestId;
+    document.getElementById('rejectNotes').value = '';
+    showModal('rejectModal');
+}
+
+function confirmReject() {
+    var notes = document.getElementById('rejectNotes').value;
+    hideModal('rejectModal');
+    processRequest(currentRequestId, 'reject', notes);
+}
+
+// Course Scheduling Functions
+function showScheduleModal(skillGroup, skillSubgroup, skillName) {
+    currentCourseInfo = {
+        skillGroup: skillGroup,
+        skillSubgroup: skillSubgroup,
+        skillName: skillName
+    };
+    
+    var courseName = skillGroup + ' - ' + skillSubgroup + ' - ' + skillName;
+    document.getElementById('course-name').textContent = courseName;
+    
+    // Set minimum date to today
+    var today = new Date().toISOString().split('T')[0];
+    document.getElementById('schedule-date').setAttribute('min', today);
+    
+    // Clear and reset form
+    document.getElementById('schedule-date').value = '';
+    document.getElementById('schedule-time').value = '';
+    document.getElementById('schedule-new').checked = true;
+    document.getElementById('new-session-fields').style.display = 'block';
+    document.getElementById('existing-sessions').style.display = 'none';
+    
+    // Load existing sessions
+    loadExistingSessions(skillGroup, skillSubgroup, skillName);
+    
+    showModal('scheduleModal');
+}
+
+function loadExistingSessions(skillGroup, skillSubgroup, skillName) {
+    var url = '/api/get-existing-sessions/?skill_group=' + encodeURIComponent(skillGroup) + 
+              '&skill_subgroup=' + encodeURIComponent(skillSubgroup) + 
+              '&skill_name=' + encodeURIComponent(skillName);
+    
+    fetch(url)
+    .then(function(response) {
+        return response.json();
+    })
+    .then(function(data) {
+        var select = document.getElementById('existing-session-select');
+        var existingOption = document.getElementById('existing-session-option');
+        
+        // Clear previous options
+        select.innerHTML = '<option value="">Choose an existing session...</option>';
+        
+        if (data.success && data.sessions.length > 0) {
+            // Populate dropdown with existing sessions
+            for (var i = 0; i < data.sessions.length; i++) {
+                var session = data.sessions[i];
+                var option = document.createElement('option');
+                option.value = session.id;
+                option.textContent = session.date + ' at ' + session.time + ' (' + session.enrolled + '/' + session.max_students + ' enrolled)';
+                select.appendChild(option);
+            }
+            
+            // Show the "Add to Existing Session" option
+            existingOption.style.display = 'block';
+        } else {
+            // Hide the "Add to Existing Session" option if no sessions exist
+            existingOption.style.display = 'none';
+        }
+    })
+    .catch(function(error) {
+        console.error('Error loading existing sessions:', error);
+        document.getElementById('existing-session-option').style.display = 'none';
+    });
+}
+
+function confirmSchedule() {
+    var newRadio = document.getElementById('schedule-new');
+    var existingRadio = document.getElementById('schedule-existing');
+    
+    if (existingRadio && existingRadio.checked) {
+        // Adding to existing session
+        var sessionSelect = document.getElementById('existing-session-select');
+        var sessionId = sessionSelect.value;
+        
+        if (!sessionId) {
+            showAlert('Please select an existing session.', 'warning');
+            return;
+        }
+        
+        addToExistingSession(sessionId);
+        return;
+    }
+    
+    // Creating new session
+    var date = document.getElementById('schedule-date').value;
+    var time = document.getElementById('schedule-time').value;
+
+    if (!date || !time) {
+        showAlert('Please fill in all fields.', 'warning');
+        return;
+    }
+
+    // Validate date is not in the past
+    var selectedDateTime = new Date(date + 'T' + time);
+    var now = new Date();
+    
+    if (selectedDateTime <= now) {
+        showAlert('Please select a future date and time.', 'warning');
+        return;
+    }
+
+    var csrfToken = getCsrfToken();
+    if (!csrfToken) {
+        showAlert('Security token not found. Please refresh the page.', 'danger');
+        return;
+    }
+
+    fetch('/api/schedule-course/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({
+            skill_group: currentCourseInfo.skillGroup,
+            skill_subgroup: currentCourseInfo.skillSubgroup,
+            skill_name: currentCourseInfo.skillName,
+            date: date,
+            time: time,
+            max_students: 16
+        })
+    })
+    .then(function(response) {
+        return response.json();
+    })
+    .then(function(data) {
+        if (data.success) {
+            hideModal('scheduleModal');
+            showAlert('Course scheduled successfully!', 'success');
+            
+            setTimeout(function() {
+                location.reload();
+            }, 1500);
+        } else {
+            showAlert(data.error || 'Failed to schedule course', 'danger');
+        }
+    })
+    .catch(function(error) {
+        console.error('Error:', error);
+        showAlert('An error occurred while scheduling the course.', 'danger');
+    });
+}
+
+function addToExistingSession(sessionId) {
+    var csrfToken = getCsrfToken();
+    if (!csrfToken) {
+        showAlert('Security token not found. Please refresh the page.', 'danger');
+        return;
+    }
+
+    fetch('/api/add-to-existing-session/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({
+            session_id: parseInt(sessionId),
+            skill_group: currentCourseInfo.skillGroup,
+            skill_subgroup: currentCourseInfo.skillSubgroup,
+            skill_name: currentCourseInfo.skillName
+        })
+    })
+    .then(function(response) {
+        return response.json();
+    })
+    .then(function(data) {
+        if (data.success) {
+            hideModal('scheduleModal');
+            showAlert(data.message || 'Participants added to existing session successfully!', 'success');
+            
+            setTimeout(function() {
+                location.reload();
+            }, 1500);
+        } else {
+            showAlert(data.error || 'Failed to add participants to session', 'danger');
+        }
+    })
+    .catch(function(error) {
+        console.error('Error:', error);
+        showAlert('An error occurred while adding participants to the session.', 'danger');
+    });
+}
+
+// Radio button handler
+function handleRadioChange() {
+    var newRadio = document.getElementById('schedule-new');
+    var existingRadio = document.getElementById('schedule-existing');
+    
+    if (newRadio.checked) {
+        document.getElementById('new-session-fields').style.display = 'block';
+        document.getElementById('existing-sessions').style.display = 'none';
+    } else if (existingRadio.checked) {
+        document.getElementById('new-session-fields').style.display = 'none';
+        document.getElementById('existing-sessions').style.display = 'block';
+    }
+}
+
+// Initialize page
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Course management page loaded');
+});
+
+</script>
+{% endblock %}

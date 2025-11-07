@@ -92,63 +92,85 @@
                         </div>
                     </div>
                 </div>
+                <div class="col-md-3">
+                    <div class="card bg-dark text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4 class="mb-0">{{ stats.scheduled_courses_count }}</h4>
+                                    <p class="mb-0">Scheduled Courses</p>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-calendar-alt fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
             
-            <!-- Pending Requests -->
+            <!-- Schedule Courses (Combined Pending and Approved) -->
             <div class="card mb-4">
-                <div class="card-header bg-warning text-white">
+                <div class="card-header bg-primary text-white">
                     <h5 class="mb-0">
-                        <i class="fas fa-exclamation-triangle mr-2"></i>Pending Enrollment Requests
+                        <i class="fas fa-calendar-plus mr-2"></i>Schedule Courses
                     </h5>
                 </div>
                 <div class="card-body">
-                    {% if pending_requests %}
+                    {% if schedule_courses %}
                         <div class="table-responsive">
                             <table class="table table-striped table-hover">
                                 <thead class="thead-dark">
                                     <tr>
                                         <th>Student</th>
                                         <th>Course</th>
-                                        <th>Requested At</th>
+                                        <th>Requested</th>
+                                        <th>Status</th>
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {% for request in pending_requests %}
-                                    <tr id="request-{{ request.id }}">
+                                    {% for item in schedule_courses %}
+                                    <tr id="request-{{ item.request_id }}" class="{% if item.status == 'approved' %}table-success{% endif %}">
                                         <td>
                                             <div class="d-flex align-items-center">
-                                                <div class="avatar-sm bg-primary text-white rounded-circle d-flex align-items-center justify-content-center mr-2">
-                                                    {{ request.user.username|first|upper }}
+                                                <div class="avatar-sm {% if item.status == 'approved' %}bg-success{% else %}bg-warning{% endif %} text-white rounded-circle d-flex align-items-center justify-content-center mr-2">
+                                                    {{ item.student.username|first|upper }}
                                                 </div>
                                                 <div>
-                                                    <strong>{{ request.user.username }}</strong>
-                                                    {% if request.user.first_name %}
-                                                        <br><small class="text-muted">{{ request.user.first_name }} {{ request.user.last_name }}</small>
+                                                    <strong>{{ item.student.username }}</strong>
+                                                    {% if item.student.first_name %}
+                                                        <br><small class="text-muted">{{ item.student.first_name }} {{ item.student.last_name }}</small>
                                                     {% endif %}
                                                 </div>
                                             </div>
                                         </td>
                                         <td>
                                             <div>
-                                                <strong>{{ request.course_full_name }}</strong>
+                                                <strong>{{ item.course_full_name }}</strong>
                                                 <br>
                                                 <small class="text-muted">
-                                                    <span class="badge badge-secondary">{{ request.skill_group }}</span>
+                                                    <span class="badge badge-secondary">{{ item.skill_group }}</span>
                                                 </small>
                                             </div>
                                         </td>
                                         <td>
-                                            <small>{{ request.requested_at|date:"M d, Y" }}</small>
+                                            <small>{{ item.requested_at|date:"M d, Y" }}</small>
                                             <br>
-                                            <small class="text-muted">{{ request.requested_at|time:"H:i" }}</small>
+                                            <small class="text-muted">{{ item.requested_at|time:"H:i" }}</small>
+                                            {% if item.status == 'approved' and item.enrolled_at %}
+                                                <br><small class="text-success">Approved: {{ item.enrolled_at|date:"M d, Y H:i" }}</small>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <span class="badge badge-warning">Pending</span>
                                         </td>
                                         <td>
                                             <div class="btn-group" role="group">
-                                                <button class="btn btn-success btn-sm" onclick="processRequest({{ request.id }}, 'approve')">
-                                                    <i class="fas fa-check mr-1"></i>Approve
+                                                <button class="btn btn-primary btn-sm" onclick="showScheduleModal('{{ item.skill_group }}', '{{ item.skill_subgroup }}', '{{ item.skill_name }}')">
+                                                    <i class="fas fa-calendar-plus mr-1"></i>Schedule Course
                                                 </button>
-                                                <button class="btn btn-danger btn-sm" onclick="showRejectModal({{ request.id }})">
+                                                <button class="btn btn-danger btn-sm" onclick="showRejectModal({{ item.request_id }})">
                                                     <i class="fas fa-times mr-1"></i>Reject
                                                 </button>
                                             </div>
@@ -160,35 +182,37 @@
                         </div>
                     {% else %}
                         <div class="text-center py-4">
-                            <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
-                            <h5 class="text-muted">No pending requests</h5>
-                            <p class="text-muted">All enrollment requests have been processed.</p>
+                            <i class="fas fa-calendar-plus fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">No course requests</h5>
+                            <p class="text-muted">No pending or approved enrollment requests to schedule.</p>
                         </div>
                     {% endif %}
                 </div>
             </div>
             
-            <!-- Approved Courses Ready for Scheduling -->
+            <!-- Scheduled Courses -->
             <div class="card mb-4">
-                <div class="card-header bg-success text-white">
+                <div class="card-header bg-info text-white">
                     <h5 class="mb-0">
-                        <i class="fas fa-calendar-plus mr-2"></i>Schedule Approved Courses
+                        <i class="fas fa-calendar-check mr-2"></i>Scheduled Courses
                     </h5>
                 </div>
                 <div class="card-body">
-                    {% if approved_courses %}
+                    {% if scheduled_courses %}
                         <div class="table-responsive">
                             <table class="table table-striped table-hover">
                                 <thead class="thead-dark">
                                     <tr>
                                         <th>Course</th>
+                                        <th>Date & Time</th>
+                                        <th>Instructor</th>
                                         <th>Participants</th>
                                         <th>Available Spots</th>
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {% for course in approved_courses %}
+                                    {% for course in scheduled_courses %}
                                     <tr>
                                         <td>
                                             <strong>{{ course.course_full_name }}</strong>
@@ -198,28 +222,48 @@
                                             </small>
                                         </td>
                                         <td>
+                                            <div class="text-center">
+                                                <div class="badge badge-primary p-2">
+                                                    <i class="fas fa-calendar mr-1"></i>{{ course.scheduled_date|date:"M d, Y" }}
+                                                </div>
+                                                <br>
+                                                <div class="badge badge-dark p-2 mt-1">
+                                                    <i class="fas fa-clock mr-1"></i>{{ course.scheduled_time|time:"H:i" }}
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="text-center">
+                                                <i class="fas fa-user-tie mr-1"></i>{{ course.instructor.username }}
+                                                {% if course.instructor.first_name %}
+                                                    <br><small class="text-muted">({{ course.instructor.first_name }} {{ course.instructor.last_name }})</small>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                        <td>
                                             <div class="d-flex align-items-center">
-                                                <span class="badge {% if course.count >= MAX_PARTICIPANTS %}badge-danger{% elif course.count >= 12 %}badge-warning{% else %}badge-primary{% endif %} mr-2">
-                                                    {{ course.count }}/{{ MAX_PARTICIPANTS }}
+                                                <span class="badge {% if course.enrolled_count >= course.max_students %}badge-danger{% elif course.enrolled_count >= 12 %}badge-warning{% else %}badge-success{% endif %} mr-2">
+                                                    {{ course.enrolled_count }}/{{ course.max_students }}
                                                 </span>
-                                                <button class="btn btn-sm btn-outline-info" type="button" data-toggle="collapse" data-target="#participants-{{ forloop.counter }}" aria-expanded="false">
+                                                <button class="btn btn-sm btn-outline-info" type="button" data-toggle="collapse" data-target="#scheduled-participants-{{ course.id }}" aria-expanded="false">
                                                     <i class="fas fa-users mr-1"></i>View List
                                                 </button>
                                             </div>
-                                            <div class="collapse mt-2" id="participants-{{ forloop.counter }}">
+                                            <div class="collapse mt-2" id="scheduled-participants-{{ course.id }}">
                                                 <div class="card card-body bg-light">
                                                     <h6>Enrolled Participants:</h6>
                                                     {% for participant in course.participants %}
                                                     <div class="d-flex justify-content-between align-items-center py-1 border-bottom">
                                                         <div>
-                                                            <strong>{{ participant.user.username }}</strong>
-                                                            {% if participant.user.first_name %}
-                                                                <small class="text-muted">({{ participant.user.first_name }} {{ participant.user.last_name }})</small>
+                                                            <strong>{{ participant.student.username }}</strong>
+                                                            {% if participant.student.first_name %}
+                                                                <small class="text-muted">({{ participant.student.first_name }} {{ participant.student.last_name }})</small>
                                                             {% endif %}
                                                         </div>
                                                         <div class="text-right">
-                                                            <small class="text-muted">Applied: {{ participant.enrollment_request.requested_at|date:"M d, Y H:i" }}</small><br>
-                                                            <small class="text-success">Approved: {{ participant.enrolled_at|date:"M d, Y H:i" }}</small>
+                                                            <span class="badge {% if participant.attended %}badge-success{% else %}badge-secondary{% endif %}">
+                                                                {% if participant.attended %}Attended{% else %}Enrolled{% endif %}
+                                                            </span>
                                                         </div>
                                                     </div>
                                                     {% endfor %}
@@ -234,9 +278,14 @@
                                             {% endif %}
                                         </td>
                                         <td>
-                                            <button class="btn btn-primary btn-sm" onclick="showScheduleModal('{{ course.skill_group }}', '{{ course.skill_subgroup }}', '{{ course.skill_name }}')">
-                                                <i class="fas fa-calendar-plus mr-1"></i>Schedule Course
-                                            </button>
+                                            <div class="btn-group-vertical" role="group">
+                                                <a href="/course-admin/{{ course.skill_group }}/{{ course.skill_subgroup }}/{{ course.skill_name }}/" class="btn btn-info btn-sm mb-1">
+                                                    <i class="fas fa-eye mr-1"></i>View Details
+                                                </a>
+                                                <button class="btn btn-warning btn-sm" onclick="showRescheduleModal({{ course.id }}, '{{ course.skill_group }}', '{{ course.skill_subgroup }}', '{{ course.skill_name }}', '{{ course.scheduled_date|date:"Y-m-d" }}', '{{ course.scheduled_time|time:"H:i" }}')">
+                                                    <i class="fas fa-calendar-alt mr-1"></i>Reschedule
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                     {% endfor %}
@@ -245,9 +294,9 @@
                         </div>
                     {% else %}
                         <div class="text-center py-4">
-                            <i class="fas fa-graduation-cap fa-3x text-muted mb-3"></i>
-                            <h5 class="text-muted">No approved courses</h5>
-                            <p class="text-muted">Approve some enrollment requests to schedule courses.</p>
+                            <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">No scheduled courses</h5>
+                            <p class="text-muted">Schedule some approved courses to see them here.</p>
                         </div>
                     {% endif %}
                 </div>
@@ -317,7 +366,7 @@
         <div class="modal-content">
             <div class="modal-header bg-primary text-white">
                 <h5 class="modal-title" id="scheduleModalLabel">Schedule Course</h5>
-                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                <button type="button" class="close text-white" onclick="hideModal('scheduleModal')" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
@@ -333,13 +382,13 @@
                     <div class="form-group">
                         <label>Choose Option:</label>
                         <div class="form-check">
-                            <input class="form-check-input" type="radio" name="schedule-type" id="schedule-new" value="new" checked onclick="handleRadioChange()">
+                            <input class="form-check-input" type="radio" name="schedule-type" id="schedule-new" value="new" checked onclick="toggleScheduleOptions()">
                             <label class="form-check-label" for="schedule-new">
                                 Create New Session
                             </label>
                         </div>
                         <div class="form-check" id="existing-session-option" style="display: none;">
-                            <input class="form-check-input" type="radio" name="schedule-type" id="schedule-existing" value="existing" onclick="handleRadioChange()">
+                            <input class="form-check-input" type="radio" name="schedule-type" id="schedule-existing" value="existing" onclick="toggleScheduleOptions()">
                             <label class="form-check-label" for="schedule-existing">
                                 Add to Existing Session
                             </label>
@@ -366,7 +415,7 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-secondary" onclick="hideModal('scheduleModal')">Cancel</button>
                 <button type="button" class="btn btn-primary" onclick="confirmSchedule()">
                     <i class="fas fa-calendar-plus mr-1"></i>Schedule Course
                 </button>
@@ -374,12 +423,49 @@
         </div>
     </div>
 </div>
+
+<!-- Reschedule Modal -->
+<div class="modal fade" id="rescheduleModal" tabindex="-1" role="dialog" aria-labelledby="rescheduleModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title" id="rescheduleModalLabel">Reschedule Course</h5>
+                <button type="button" class="close text-dark" onclick="hideModal('rescheduleModal')" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="reschedule-course-info" class="mb-3">
+                    <h6>Course: <span id="reschedule-course-name"></span></h6>
+                    <p class="text-muted">Current Schedule: <span id="current-schedule"></span></p>
+                </div>
+                <div id="reschedule-form">
+                    <div class="form-group">
+                        <label for="reschedule-date">New Date:</label>
+                        <input type="date" class="form-control" id="reschedule-date">
+                    </div>
+                    <div class="form-group">
+                        <label for="reschedule-time">New Time:</label>
+                        <input type="time" class="form-control" id="reschedule-time">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="hideModal('rescheduleModal')">Cancel</button>
+                <button type="button" class="btn btn-warning" onclick="confirmReschedule()">
+                    <i class="fas fa-calendar-alt mr-1"></i>Reschedule Course
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="modal fade" id="rejectModal" tabindex="-1" role="dialog" aria-labelledby="rejectModalLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header bg-danger text-white">
                 <h5 class="modal-title" id="rejectModalLabel">Reject Enrollment Request</h5>
-                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                <button type="button" class="close text-white" onclick="hideModal('rejectModal')" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
@@ -392,7 +478,7 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-secondary" onclick="hideModal('rejectModal')">Cancel</button>
                 <button type="button" class="btn btn-danger" onclick="confirmReject()">
                     <i class="fas fa-times mr-1"></i>Reject Request
                 </button>
@@ -426,54 +512,113 @@
 .badge {
     font-size: 0.75em;
 }
+
+/* Modal fixes for vanilla JS */
+.modal {
+    display: none !important;
+}
+
+.modal.show {
+    display: block !important;
+}
+
+body.modal-open {
+    overflow: hidden;
+}
 </style>
 
 <script>
-let currentRequestId = null;
+// ===== SIMPLIFIED JAVASCRIPT - NO JQUERY DEPENDENCIES =====
 
-function processRequest(requestId, action, notes = '') {
-    const csrfTokenElement = document.querySelector('[name=csrfmiddlewaretoken]');
+// Global variables
+var currentRequestId = null;
+var currentCourseInfo = {};
+
+// Utility Functions
+function showAlert(message, type) {
+    var alertDiv = document.createElement('div');
+    alertDiv.className = 'alert alert-' + type + ' alert-dismissible fade show position-fixed';
+    alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    alertDiv.innerHTML = message + '<button type="button" class="close" onclick="this.parentElement.remove()"><span>&times;</span></button>';
     
-    if (!csrfTokenElement) {
+    document.body.appendChild(alertDiv);
+    
+    // Auto-dismiss after 5 seconds
+    setTimeout(function() {
+        if (alertDiv && alertDiv.parentNode) {
+            alertDiv.parentNode.removeChild(alertDiv);
+        }
+    }, 5000);
+}
+
+function getCsrfToken() {
+    var tokenElement = document.querySelector('[name=csrfmiddlewaretoken]');
+    return tokenElement ? tokenElement.value : '';
+}
+
+// Modal Functions (Vanilla JS - No Bootstrap/jQuery dependencies)
+function showModal(modalId) {
+    var modal = document.getElementById(modalId);
+    modal.style.display = 'block';
+    modal.classList.add('show');
+    document.body.classList.add('modal-open');
+}
+
+function hideModal(modalId) {
+    var modal = document.getElementById(modalId);
+    modal.style.display = 'none';
+    modal.classList.remove('show');
+    document.body.classList.remove('modal-open');
+    
+    // Remove any modal backdrop that might exist
+    var backdrop = document.querySelector('.modal-backdrop');
+    if (backdrop) {
+        backdrop.remove();
+    }
+}
+
+// Request Processing Functions
+function rejectRequest(requestId, notes) {
+    var csrfToken = getCsrfToken();
+    if (!csrfToken) {
         showAlert('Security token not found. Please refresh the page.', 'danger');
-        console.error('CSRF token element not found');
         return;
     }
-    
-    const csrfToken = csrfTokenElement.value;
-    
-    fetch(`/course-management/process-enrollment/${requestId}/`, {
+
+    // Use vanilla JavaScript fetch instead of jQuery
+    fetch('/course-management/process-enrollment/' + requestId + '/', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRFToken': csrfToken,
+            'X-CSRFToken': csrfToken
         },
         body: JSON.stringify({
-            action: action,
+            action: 'reject',
             notes: notes
         })
     })
-    .then(response => response.json())
-    .then(data => {
+    .then(function(response) {
+        return response.json();
+    })
+    .then(function(data) {
         if (data.success) {
             // Remove the row from the table
-            const row = document.getElementById(`request-${requestId}`);
+            var row = document.getElementById('request-' + requestId);
             if (row) {
                 row.remove();
             }
             
-            // Show success message
             showAlert(data.message, 'success');
             
             // Refresh page to update statistics
-            setTimeout(() => {
+            setTimeout(function() {
                 location.reload();
             }, 1500);
         } else {
             showAlert(data.error, 'danger');
         }
     })
-    .catch(error => {
+    .catch(function(error) {
         console.error('Error:', error);
         showAlert('An error occurred while processing the request.', 'danger');
     });
@@ -482,38 +627,87 @@ function processRequest(requestId, action, notes = '') {
 function showRejectModal(requestId) {
     currentRequestId = requestId;
     document.getElementById('rejectNotes').value = '';
-    $('#rejectModal').modal('show');
+    showModal('rejectModal');
 }
 
 function confirmReject() {
-    const notes = document.getElementById('rejectNotes').value;
-    $('#rejectModal').modal('hide');
-    processRequest(currentRequestId, 'reject', notes);
+    var notes = document.getElementById('rejectNotes').value;
+    hideModal('rejectModal');
+    rejectRequest(currentRequestId, notes);
 }
 
-function showAlert(message, type) {
-    const alertDiv = document.createElement('div');
-    alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
-    alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
-    alertDiv.innerHTML = `
-        ${message}
-        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-            <span aria-hidden="true">&times;</span>
-        </button>
-    `;
+// Reschedule Functions
+var currentRescheduleId = null;
+
+function showRescheduleModal(courseId, skillGroup, skillSubgroup, skillName, currentDate, currentTime) {
+    currentRescheduleId = courseId;
     
-    document.body.appendChild(alertDiv);
+    var courseName = skillGroup + ' > ' + skillSubgroup + ' > ' + skillName;
+    document.getElementById('reschedule-course-name').textContent = courseName;
     
-    // Auto-dismiss after 5 seconds
-    setTimeout(() => {
-        if (alertDiv && alertDiv.parentNode) {
-            alertDiv.parentNode.removeChild(alertDiv);
+    var currentSchedule = currentDate + ' at ' + currentTime;
+    document.getElementById('current-schedule').textContent = currentSchedule;
+    
+    // Pre-fill with current values
+    document.getElementById('reschedule-date').value = currentDate;
+    document.getElementById('reschedule-time').value = currentTime;
+    
+    // Set minimum date to today
+    var today = new Date().toISOString().split('T')[0];
+    document.getElementById('reschedule-date').min = today;
+    
+    showModal('rescheduleModal');
+}
+
+function confirmReschedule() {
+    if (!currentRescheduleId) {
+        showAlert('No course selected for rescheduling', 'danger');
+        return;
+    }
+    
+    var newDate = document.getElementById('reschedule-date').value;
+    var newTime = document.getElementById('reschedule-time').value;
+    
+    if (!newDate || !newTime) {
+        showAlert('Please select both date and time', 'danger');
+        return;
+    }
+    
+    var csrfToken = getCsrfToken();
+    if (!csrfToken) {
+        showAlert('Security token not found. Please refresh the page.', 'danger');
+        return;
+    }
+    
+    fetch('/course-management/reschedule-course/' + currentRescheduleId + '/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({
+            date: newDate,
+            time: newTime
+        })
+    })
+    .then(function(response) {
+        return response.json();
+    })
+    .then(function(data) {
+        if (data.success) {
+            hideModal('rescheduleModal');
+            showAlert(data.message, 'success');
+            setTimeout(function() {
+                location.reload();
+            }, 1500);
+        } else {
+            showAlert(data.error || 'Failed to reschedule course', 'danger');
         }
-    }, 5000);
+    })
+    .catch(function(error) {
+        showAlert('Error rescheduling course: ' + error.message, 'danger');
+    });
 }
-
-// Course Scheduling Functions
-let currentCourseInfo = {};
 
 function showScheduleModal(skillGroup, skillSubgroup, skillName) {
     currentCourseInfo = {
@@ -522,76 +716,81 @@ function showScheduleModal(skillGroup, skillSubgroup, skillName) {
         skillName: skillName
     };
     
-    var courseName = skillGroup + ' - ' + skillSubgroup + ' - ' + skillName;
+    var courseName = skillGroup + ' > ' + skillSubgroup + ' > ' + skillName;
     document.getElementById('course-name').textContent = courseName;
     
     // Set minimum date to today
     var today = new Date().toISOString().split('T')[0];
     document.getElementById('schedule-date').setAttribute('min', today);
     
-    // Clear fields manually and reset to new session mode
+    // Reset form to new session mode
+    document.getElementById('schedule-new').checked = true;
     document.getElementById('schedule-date').value = '';
     document.getElementById('schedule-time').value = '';
-    document.getElementById('schedule-new').checked = true;
+    
+    // Reset visibility
     document.getElementById('new-session-fields').style.display = 'block';
     document.getElementById('existing-sessions').style.display = 'none';
     
-    // Load existing sessions for this course
+    // Load existing sessions
     loadExistingSessions(skillGroup, skillSubgroup, skillName);
     
-    // Show modal without jQuery
-    var modal = document.getElementById('scheduleModal');
-    modal.style.display = 'block';
-    modal.classList.add('show');
+    showModal('scheduleModal');
 }
 
 function loadExistingSessions(skillGroup, skillSubgroup, skillName) {
-    // Use jQuery AJAX instead of fetch for better compatibility
     var url = '/api/get-existing-sessions/?skill_group=' + encodeURIComponent(skillGroup) + 
               '&skill_subgroup=' + encodeURIComponent(skillSubgroup) + 
               '&skill_name=' + encodeURIComponent(skillName);
     
-    $.ajax({
-        url: url,
-        method: 'GET',
-        success: function(data) {
-            var select = document.getElementById('existing-session-select');
-            var existingOption = document.getElementById('existing-session-option');
-            
-            // Clear previous options
-            select.innerHTML = '<option value="">Choose an existing session...</option>';
-            
-            if (data.success && data.sessions.length > 0) {
-                // Populate dropdown with existing sessions
-                for (var i = 0; i < data.sessions.length; i++) {
-                    var session = data.sessions[i];
-                    var option = document.createElement('option');
-                    option.value = session.id;
-                    option.textContent = session.date + ' at ' + session.time + ' (' + session.enrolled + '/' + session.max_students + ' enrolled)';
-                    option.setAttribute('data-date', session.date);
-                    option.setAttribute('data-time', session.time);
-                    select.appendChild(option);
-                }
-                
-                // Show the "Add to Existing Session" option
-                existingOption.style.display = 'block';
-            } else {
-                // Hide the "Add to Existing Session" option if no sessions exist
-                existingOption.style.display = 'none';
+    fetch(url)
+    .then(function(response) {
+        return response.json();
+    })
+    .then(function(data) {
+        var select = document.getElementById('existing-session-select');
+        var existingOption = document.getElementById('existing-session-option');
+        
+        // Clear previous options
+        select.innerHTML = '<option value="">Choose an existing session...</option>';
+        
+        if (data.success && data.sessions.length > 0) {
+            // Populate dropdown with existing sessions
+            for (var i = 0; i < data.sessions.length; i++) {
+                var session = data.sessions[i];
+                var option = document.createElement('option');
+                option.value = session.id;
+                option.textContent = session.date + ' at ' + session.time + ' (' + session.enrolled + '/' + session.max_students + ' enrolled)';
+                select.appendChild(option);
             }
-        },
-        error: function(xhr, status, error) {
-            console.error('Error loading existing sessions:', error);
-            document.getElementById('existing-session-option').style.display = 'none';
+            
+            // Show the "Add to Existing Session" option
+            existingOption.style.display = 'block';
+        } else {
+            // Hide the "Add to Existing Session" option if no sessions exist
+            existingOption.style.display = 'none';
         }
+    })
+    .catch(function(error) {
+        console.error('Error loading existing sessions:', error);
+        document.getElementById('existing-session-option').style.display = 'none';
     });
 }
 
-function confirmSchedule() {
-    alert('confirmSchedule called');
-    
-    // Get which radio button is selected
+function toggleScheduleOptions() {
     var newRadio = document.getElementById('schedule-new');
+    var existingRadio = document.getElementById('schedule-existing');
+    
+    if (newRadio.checked) {
+        document.getElementById('new-session-fields').style.display = 'block';
+        document.getElementById('existing-sessions').style.display = 'none';
+    } else if (existingRadio.checked) {
+        document.getElementById('new-session-fields').style.display = 'none';
+        document.getElementById('existing-sessions').style.display = 'block';
+    }
+}
+
+function confirmSchedule() {
     var existingRadio = document.getElementById('schedule-existing');
     
     if (existingRadio && existingRadio.checked) {
@@ -600,16 +799,15 @@ function confirmSchedule() {
         var sessionId = sessionSelect.value;
         
         if (!sessionId) {
-            alert('Please select an existing session.');
+            showAlert('Please select an existing session.', 'warning');
             return;
         }
         
-        // Call the add to existing session function
         addToExistingSession(sessionId);
         return;
     }
     
-    // Handle creating new session (original logic)
+    // Creating new session
     var date = document.getElementById('schedule-date').value;
     var time = document.getElementById('schedule-time').value;
 
@@ -627,104 +825,87 @@ function confirmSchedule() {
         return;
     }
 
-    var csrfTokenElement = document.querySelector('[name=csrfmiddlewaretoken]');
-    
-    if (!csrfTokenElement) {
+    var csrfToken = getCsrfToken();
+    if (!csrfToken) {
         showAlert('Security token not found. Please refresh the page.', 'danger');
         return;
     }
 
-    var csrfToken = csrfTokenElement.value;
-
-    $.ajax({
-        url: '/api/schedule-course/',
+    fetch('/api/schedule-course/', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             'X-CSRFToken': csrfToken
         },
-        data: JSON.stringify({
+        body: JSON.stringify({
             skill_group: currentCourseInfo.skillGroup,
             skill_subgroup: currentCourseInfo.skillSubgroup,
             skill_name: currentCourseInfo.skillName,
             date: date,
             time: time,
-            max_students: 16  // Always use 16 as maximum
-        }),
-        success: function(data) {
-            if (data.success) {
-                var modal = document.getElementById('scheduleModal');
-                modal.style.display = 'none';
-                modal.classList.remove('show');
-                showAlert('Course scheduled successfully!', 'success');
-                
-                // Refresh page to update the course list
-                setTimeout(function() {
-                    location.reload();
-                }, 1500);
-            } else {
-                showAlert(data.error || 'Failed to schedule course', 'danger');
-            }
-        },
-        error: function(xhr, status, error) {
-            console.error('Error:', error);
-            showAlert('An error occurred while scheduling the course.', 'danger');
+            max_students: 16
+        })
+    })
+    .then(function(response) {
+        return response.json();
+    })
+    .then(function(data) {
+        if (data.success) {
+            hideModal('scheduleModal');
+            showAlert('Course scheduled successfully!', 'success');
+            
+            setTimeout(function() {
+                location.reload();
+            }, 1500);
+        } else {
+            showAlert(data.error || 'Failed to schedule course', 'danger');
         }
+    })
+    .catch(function(error) {
+        console.error('Error:', error);
+        showAlert('An error occurred while scheduling the course.', 'danger');
     });
 }
 
 function addToExistingSession(sessionId) {
-    alert('addToExistingSession called with ID: ' + sessionId);
-    
-    var csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    var csrfToken = getCsrfToken();
+    if (!csrfToken) {
+        showAlert('Security token not found. Please refresh the page.', 'danger');
+        return;
+    }
 
-    $.ajax({
-        url: '/api/add-to-existing-session/',
+    fetch('/api/add-to-existing-session/', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             'X-CSRFToken': csrfToken
         },
-        data: JSON.stringify({
+        body: JSON.stringify({
             session_id: parseInt(sessionId),
             skill_group: currentCourseInfo.skillGroup,
             skill_subgroup: currentCourseInfo.skillSubgroup,
             skill_name: currentCourseInfo.skillName
-        }),
-        success: function(data) {
-            if (data.success) {
-                var modal = document.getElementById('scheduleModal');
-                modal.style.display = 'none';
-                modal.classList.remove('show');
-                showAlert(data.message || 'Participants added to existing session successfully!', 'success');
-                
-                // Refresh page to update the course list
-                setTimeout(function() {
-                    location.reload();
-                }, 1500);
-            } else {
-                showAlert(data.error || 'Failed to add participants to session', 'danger');
-            }
-        },
-        error: function(xhr, status, error) {
-            console.error('Error:', error);
-            showAlert('An error occurred while adding participants to the session.', 'danger');
+        })
+    })
+    .then(function(response) {
+        return response.json();
+    })
+    .then(function(data) {
+        if (data.success) {
+            hideModal('scheduleModal');
+            showAlert(data.message || 'Students added to existing session successfully!', 'success');
+            
+            setTimeout(function() {
+                location.reload();
+            }, 1500);
+        } else {
+            showAlert(data.error || 'Failed to add students to session', 'danger');
         }
+    })
+    .catch(function(error) {
+        console.error('Error:', error);
+        showAlert('An error occurred while adding students to the session.', 'danger');
     });
-}
-
-// Simple radio button handlers
-function handleRadioChange() {
-    var newRadio = document.getElementById('schedule-new');
-    var existingRadio = document.getElementById('schedule-existing');
-    
-    if (newRadio.checked) {
-        document.getElementById('new-session-fields').style.display = 'block';
-        document.getElementById('existing-sessions').style.display = 'none';
-    } else if (existingRadio.checked) {
-        document.getElementById('new-session-fields').style.display = 'none';
-        document.getElementById('existing-sessions').style.display = 'block';
-    }
 }
 
 // Simple page ready function
