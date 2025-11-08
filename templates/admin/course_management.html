@@ -167,7 +167,7 @@
                                         </td>
                                         <td>
                                             <div class="btn-group" role="group">
-                                                <button class="btn btn-primary btn-sm" onclick="showScheduleModal('{{ item.skill_group }}', '{{ item.skill_subgroup }}', '{{ item.skill_name }}')">
+                                                <button class="btn btn-primary btn-sm" onclick="showScheduleModal('{{ item.skill_group }}', '{{ item.skill_subgroup }}', '{{ item.skill_name }}', {{ item.request_id }})">
                                                     <i class="fas fa-calendar-plus mr-1"></i>Schedule Course
                                                 </button>
                                                 <button class="btn btn-danger btn-sm" onclick="showRejectModal({{ item.request_id }})">
@@ -402,6 +402,8 @@
                         </select>
                     </div>
                     
+
+                    
                     <div id="new-session-fields">
                         <div class="form-group">
                             <label for="schedule-date">Date:</label>
@@ -452,6 +454,9 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" onclick="hideModal('rescheduleModal')">Cancel</button>
+                <button type="button" class="btn btn-danger" onclick="confirmDismissCourse()">
+                    <i class="fas fa-trash mr-1"></i>Dismiss Course
+                </button>
                 <button type="button" class="btn btn-warning" onclick="confirmReschedule()">
                     <i class="fas fa-calendar-alt mr-1"></i>Reschedule Course
                 </button>
@@ -709,11 +714,55 @@ function confirmReschedule() {
     });
 }
 
-function showScheduleModal(skillGroup, skillSubgroup, skillName) {
+function confirmDismissCourse() {
+    if (!currentRescheduleId) {
+        showAlert('No course selected for dismissal', 'danger');
+        return;
+    }
+    
+    // Show confirmation dialog
+    if (!confirm('Are you sure you want to dismiss this course? This will delete the scheduled course and revert all enrolled students back to pending status.')) {
+        return;
+    }
+    
+    var csrfToken = getCsrfToken();
+    if (!csrfToken) {
+        showAlert('Security token not found. Please refresh the page.', 'danger');
+        return;
+    }
+    
+    fetch('/course-management/dismiss-course/' + currentRescheduleId + '/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        }
+    })
+    .then(function(response) {
+        return response.json();
+    })
+    .then(function(data) {
+        if (data.success) {
+            hideModal('rescheduleModal');
+            showAlert(data.message, 'success');
+            setTimeout(function() {
+                location.reload();
+            }, 2000);
+        } else {
+            showAlert(data.error || 'Failed to dismiss course', 'danger');
+        }
+    })
+    .catch(function(error) {
+        showAlert('Error dismissing course: ' + error.message, 'danger');
+    });
+}
+
+function showScheduleModal(skillGroup, skillSubgroup, skillName, requestId) {
     currentCourseInfo = {
         skillGroup: skillGroup,
         skillSubgroup: skillSubgroup,
-        skillName: skillName
+        skillName: skillName,
+        requestId: requestId
     };
     
     var courseName = skillGroup + ' > ' + skillSubgroup + ' > ' + skillName;
@@ -841,6 +890,7 @@ function confirmSchedule() {
             skill_group: currentCourseInfo.skillGroup,
             skill_subgroup: currentCourseInfo.skillSubgroup,
             skill_name: currentCourseInfo.skillName,
+            request_id: currentCourseInfo.requestId,
             date: date,
             time: time,
             max_students: 16

@@ -480,14 +480,14 @@ def course_management(request):
         # Get participants for this course
         participants = CourseAttendance.objects.filter(scheduled_course=course).select_related('student')
         
-        if participants.exists():  # Only show courses with at least one participant
-            scheduled_courses_data.append({
-                'id': course.id,
-                'skill_group': course.skill_group,
-                'skill_subgroup': course.skill_subgroup,
-                'skill_name': course.skill_name,
-                'course_full_name': f"{course.skill_group} > {course.skill_subgroup} > {course.skill_name}",
-                'scheduled_date': course.scheduled_date,
+        # Show ALL scheduled courses, including empty ones
+        scheduled_courses_data.append({
+            'id': course.id,
+            'skill_group': course.skill_group,
+            'skill_subgroup': course.skill_subgroup,
+            'skill_name': course.skill_name,
+            'course_full_name': f"{course.skill_group} > {course.skill_subgroup} > {course.skill_name}",
+            'scheduled_date': course.scheduled_date,
                 'scheduled_time': course.scheduled_time,
                 'instructor': course.instructor,
                 'max_students': course.max_students,
@@ -681,17 +681,18 @@ def debug_enrollment(request):
 @staff_member_required
 @require_http_methods(["POST"])
 def schedule_course(request):
-    """Schedule an approved course for a specific date and time"""
+    """Schedule a specific enrollment request for a specific date and time"""
     try:
         data = json.loads(request.body)
         skill_group = data.get('skill_group')
         skill_subgroup = data.get('skill_subgroup')
         skill_name = data.get('skill_name')
+        request_id = data.get('request_id')  # Specific enrollment request ID
         scheduled_date = data.get('date')  # Changed from 'scheduled_date' to 'date'
         scheduled_time = data.get('time')  # Changed from 'scheduled_time' to 'time'
         max_students = data.get('max_students', 20)
         
-        if not all([skill_group, skill_subgroup, skill_name, scheduled_date, scheduled_time]):
+        if not all([skill_group, skill_subgroup, skill_name, request_id, scheduled_date, scheduled_time]):
             return JsonResponse({'success': False, 'error': 'Missing required parameters'})
         
         # Check if this course is already scheduled for this date/time
@@ -720,53 +721,57 @@ def schedule_course(request):
             max_students=max_students
         )
         
-        # Enroll pending participants and approve their requests automatically
-        pending_participants = CourseEnrollmentRequest.objects.filter(
+        # Get the specific enrollment request
+        try:
+            participant_request = CourseEnrollmentRequest.objects.get(
+                id=request_id,
+                skill_group=skill_group,
+                skill_subgroup=skill_subgroup,
+                skill_name=skill_name,
+                status='pending'
+            )
+        except CourseEnrollmentRequest.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Enrollment request not found or already processed'})
+        
+        # Check if this participant is already enrolled in ANY session for this course
+        existing_enrollment = CourseAttendance.objects.filter(
+            student=participant_request.user,
+            scheduled_course__skill_group=skill_group,
+            scheduled_course__skill_subgroup=skill_subgroup,
+            scheduled_course__skill_name=skill_name
+        ).exists()
+        
+        if existing_enrollment:
+            return JsonResponse({'success': False, 'error': f'User {participant_request.user.username} is already enrolled in a session for this course'})
+        
+        # Enroll the specific user
+        # Auto-approve the enrollment request
+        participant_request.status = 'approved'
+        participant_request.reviewed_at = timezone.now()
+        participant_request.reviewed_by = request.user
+        participant_request.admin_notes = f'Approved when scheduling course on {scheduled_date} at {scheduled_time}'
+        participant_request.save()
+        
+        # Create the approved enrollment record
+        ApprovedCourseEnrollment.objects.create(
+            user=participant_request.user,
             skill_group=skill_group,
             skill_subgroup=skill_subgroup,
             skill_name=skill_name,
-            status='pending'
+            enrollment_request=participant_request
         )
         
-        enrolled_count = 0
-        for participant_request in pending_participants:
-            # Check if this participant is already enrolled in ANY session for this course
-            existing_enrollment = CourseAttendance.objects.filter(
-                student=participant_request.user,
-                scheduled_course__skill_group=skill_group,
-                scheduled_course__skill_subgroup=skill_subgroup,
-                scheduled_course__skill_name=skill_name
-            ).exists()
-            
-            # Only enroll if they're not already enrolled in any session
-            if not existing_enrollment and enrolled_count < max_students:
-                # Auto-approve the enrollment request
-                participant_request.status = 'approved'
-                participant_request.reviewed_at = timezone.now()
-                participant_request.reviewed_by = request.user
-                participant_request.admin_notes = f'Auto-approved when scheduling course on {scheduled_date} at {scheduled_time}'
-                participant_request.save()
-                
-                # Create the approved enrollment record
-                ApprovedCourseEnrollment.objects.create(
-                    user=participant_request.user,
-                    skill_group=skill_group,
-                    skill_subgroup=skill_subgroup,
-                    skill_name=skill_name,
-                    enrollment_request=participant_request
-                )
-                
-                # Enroll in the scheduled course
-                CourseAttendance.objects.create(
-                    student=participant_request.user,
-                    scheduled_course=scheduled_course,
-                    attended=False
-                )
-                enrolled_count += 1
+        # Enroll in the scheduled course
+        CourseAttendance.objects.create(
+            student=participant_request.user,
+            scheduled_course=scheduled_course,
+            attended=False
+        )
+        enrolled_count = 1
         
         return JsonResponse({
             'success': True,
-            'message': f'Course scheduled successfully for {scheduled_date} at {scheduled_time}. {enrolled_count} students automatically enrolled.',
+            'message': f'Course scheduled successfully for {participant_request.user.username} on {scheduled_date} at {scheduled_time}.',
             'course_id': scheduled_course.id
         })
         
@@ -814,6 +819,72 @@ def reschedule_course(request, course_id):
             'success': True,
             'message': f'Course rescheduled from {old_date} {old_time} to {new_date} {new_time}',
             'course_id': scheduled_course.id
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+@staff_member_required
+@require_http_methods(["POST"])
+def dismiss_course(request, course_id):
+    """Dismiss a scheduled course and revert all enrolled students back to pending status"""
+    try:
+        scheduled_course = get_object_or_404(ScheduledCourse, id=course_id)
+        
+        # Get all enrolled students for this course
+        enrolled_students = CourseAttendance.objects.filter(scheduled_course=scheduled_course)
+        
+        # Store course info for the message
+        course_name = f"{scheduled_course.skill_group} > {scheduled_course.skill_subgroup} > {scheduled_course.skill_name}"
+        enrolled_count = enrolled_students.count()
+        
+        # Revert all enrolled students back to pending status
+        for attendance in enrolled_students:
+            # Find the corresponding enrollment request and revert it to pending
+            try:
+                enrollment_request = CourseEnrollmentRequest.objects.get(
+                    user=attendance.student,
+                    skill_group=scheduled_course.skill_group,
+                    skill_subgroup=scheduled_course.skill_subgroup,
+                    skill_name=scheduled_course.skill_name,
+                    status='approved'
+                )
+                
+                # Revert to pending status
+                enrollment_request.status = 'pending'
+                enrollment_request.reviewed_at = None
+                enrollment_request.reviewed_by = None
+                enrollment_request.admin_notes = f'Course dismissed on {timezone.now().strftime("%Y-%m-%d at %H:%M")}. Reverted to pending status.'
+                enrollment_request.save()
+                
+                # Delete the approved enrollment record
+                ApprovedCourseEnrollment.objects.filter(
+                    user=attendance.student,
+                    skill_group=scheduled_course.skill_group,
+                    skill_subgroup=scheduled_course.skill_subgroup,
+                    skill_name=scheduled_course.skill_name
+                ).delete()
+                
+            except CourseEnrollmentRequest.DoesNotExist:
+                # If no enrollment request found, create one in pending status
+                CourseEnrollmentRequest.objects.create(
+                    user=attendance.student,
+                    skill_group=scheduled_course.skill_group,
+                    skill_subgroup=scheduled_course.skill_subgroup,
+                    skill_name=scheduled_course.skill_name,
+                    status='pending',
+                    admin_notes=f'Course dismissed on {timezone.now().strftime("%Y-%m-%d at %H:%M")}. Created pending request.'
+                )
+        
+        # Delete all course attendance records
+        enrolled_students.delete()
+        
+        # Delete the scheduled course
+        scheduled_course.delete()
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Course "{course_name}" was dismissed. {enrolled_count} students reverted to pending status and will appear in Schedule Courses.'
         })
         
     except Exception as e:
@@ -910,7 +981,7 @@ def get_existing_sessions(request):
 @staff_member_required  
 @require_http_methods(["POST"])
 def add_to_existing_session(request):
-    """Add approved participants to an existing scheduled session"""
+    """Add all pending participants to an existing scheduled session"""
     try:
         data = json.loads(request.body)
         session_id = data.get('session_id')
