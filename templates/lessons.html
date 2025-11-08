@@ -34,6 +34,23 @@
     {% if user.is_authenticated %}
     <div class="row mb-4">
         <div class="col-12">
+            {% if user.is_staff or user.is_superuser %}
+            <!-- Admin users - always show as enrolled -->
+            <div class="card border-success" id="course-enrollment-card">
+                <div class="card-body text-center py-4">
+                    <div id="enrolled-section">
+                        <h4 class="text-success mb-3">
+                            <i class="fas fa-user-shield mr-2"></i>Administrator Access - {{ skill_name }}
+                        </h4>
+                        <p class="text-muted mb-3">As an administrator, you have full access to all course resources and lessons.</p>
+                        <span class="badge badge-primary badge-lg">
+                            <i class="fas fa-user-cog mr-1"></i>Administrator
+                        </span>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <!-- Regular users - normal enrollment flow -->
             <div class="card border-info" id="course-enrollment-card">
                 <div class="card-body text-center py-4">
                     <div id="join-course-section">
@@ -56,6 +73,7 @@
                     </div>
                 </div>
             </div>
+            {% endif %}
         </div>
     </div>
     {% endif %}
@@ -99,12 +117,21 @@
                                     </td>
                                     <td class="align-middle">
                                         {% if user.is_authenticated %}
-                                        <button class="btn btn-outline-success btn-sm start-lesson" 
-                                                data-lesson="{{ lesson }}" 
-                                                data-skill="{{ skill_name }}"
-                                                disabled>
-                                            <i class="fas fa-lock mr-1"></i>Join Course First
-                                        </button>
+                                            {% if user.is_staff or user.is_superuser %}
+                                            <!-- Admins always can view/start lessons -->
+                                            <button class="btn btn-success btn-sm start-lesson" 
+                                                    data-lesson="{{ lesson }}" 
+                                                    data-skill="{{ skill_name }}">
+                                                <i class="fas fa-play mr-1"></i>Start Lesson
+                                            </button>
+                                            {% else %}
+                                            <button class="btn btn-outline-success btn-sm start-lesson" 
+                                                    data-lesson="{{ lesson }}" 
+                                                    data-skill="{{ skill_name }}"
+                                                    disabled>
+                                                <i class="fas fa-lock mr-1"></i>Join Course First
+                                            </button>
+                                            {% endif %}
                                         {% else %}
                                         <a href="{% url 'login' %}" class="btn btn-outline-primary btn-sm">
                                             <i class="fas fa-sign-in-alt mr-1"></i>Login to Join
@@ -258,15 +285,14 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     let courseJoined = false;
+    // Check if user is admin (from template)
+    var isAdmin = {% if user.is_staff or user.is_superuser %}true{% else %}false{% endif %};
     
-    // Handle course join button
+    // Handle course join button (only exists for non-admin users)
     const joinCourseBtn = document.getElementById('join-course-btn');
     const joinSection = document.getElementById('join-course-section');
     const enrolledSection = document.getElementById('enrolled-section');
     const enrollmentCard = document.getElementById('course-enrollment-card');
-    
-    // Check enrollment status on page load
-    checkEnrollmentStatus();
     
     // Poll for status changes every 30 seconds if request is pending
     let statusPolling = null;
@@ -289,14 +315,24 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    if (joinCourseBtn) {
-        console.log('Join course button found, adding event listener');
-        joinCourseBtn.addEventListener('click', function() {
-            console.log('Join course button clicked!');
-            requestCourseEnrollment();
-        });
+    // If admin, treat as already joined so resources are accessible
+    if (isAdmin) {
+        console.log('Admin detected: enabling lesson access');
+        courseJoined = true;
+        enableLessonButtons(); // Enable lessons immediately for admins
     } else {
-        console.log('Join course button NOT found');
+        // For regular users, check enrollment status on page load
+        checkEnrollmentStatus();
+        
+        if (joinCourseBtn) {
+            console.log('Join course button found, adding event listener');
+            joinCourseBtn.addEventListener('click', function() {
+                console.log('Join course button clicked!');
+                requestCourseEnrollment();
+            });
+        } else {
+            console.log('Join course button NOT found');
+        }
     }
 
     function checkEnrollmentStatus() {

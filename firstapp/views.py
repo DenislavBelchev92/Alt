@@ -558,6 +558,10 @@ def request_course_enrollment(request):
         print(f"Received enrollment request from user: {request.user}")
         print(f"Request body: {request.body}")
         
+        # Prevent admin users from creating enrollment requests via the public endpoint
+        if getattr(request.user, 'is_staff', False) or getattr(request.user, 'is_superuser', False):
+            return JsonResponse({'success': False, 'error': 'Administrators cannot submit enrollment requests.'})
+
         data = json.loads(request.body)
         skill_group = data.get('skill_group')
         skill_subgroup = data.get('skill_subgroup') 
