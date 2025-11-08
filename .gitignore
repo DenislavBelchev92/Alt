@@ -21,4 +21,6 @@ staticfiles/
 *.env
 
 # MacOS
-.DS_Store
+.DS_Storeclient_secret_google_cloud_Alt.json
+gdrive_tokens/
+.env

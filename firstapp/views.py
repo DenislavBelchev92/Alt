@@ -1074,3 +1074,61 @@ def add_to_existing_session(request):
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)})
 
+
+# Google Drive Integration Views
+
+@login_required
+def get_gdrive_resource(request):
+    """API endpoint to get Google Drive resource URL"""
+    try:
+        from .gdrive import get_gdrive_resource as get_resource, get_auth_url
+        
+        resource_name = request.GET.get('resource')
+        folder_path = request.GET.get('folder', 'Alt')  # Default to Alt folder
+        
+        if not resource_name:
+            return JsonResponse({'success': False, 'error': 'Resource name required'})
+        
+        result = get_resource(request.user.id, resource_name, folder_path)
+        
+        # If authentication required, generate auth URL
+        if not result['success'] and result.get('auth_required'):
+            auth_url = get_auth_url(request, request.user.id)
+            if auth_url:
+                result['auth_url'] = auth_url
+        
+
+        
+        return JsonResponse(result)
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+def oauth2callback(request):
+    """Handle Google OAuth callback"""
+    try:
+        from .gdrive import handle_oauth_callback
+        
+        if 'error' in request.GET:
+            return render(request, 'oauth_error.html', {
+                'error': request.GET.get('error'),
+                'error_description': request.GET.get('error_description', 'OAuth authorization failed')
+            })
+        
+        success = handle_oauth_callback(request)
+        
+        if success:
+            return render(request, 'oauth_success.html', {
+                'message': 'Google Drive access authorized successfully! You can now close this window.'
+            })
+        else:
+            return render(request, 'oauth_error.html', {
+                'error': 'OAuth Error',
+                'error_description': 'Failed to complete authorization'
+            })
+            
+    except Exception as e:
+        return render(request, 'oauth_error.html', {
+            'error': 'System Error',
+            'error_description': str(e)
+        })

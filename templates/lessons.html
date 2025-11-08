@@ -288,6 +288,72 @@ document.addEventListener('DOMContentLoaded', function() {
     // Check if user is admin (from template)
     var isAdmin = {% if user.is_staff or user.is_superuser %}true{% else %}false{% endif %};
     
+    // Google Drive resource mapping
+    const lessonResourceMap = {
+        "Planning a Budget for a School Event": "Math1"
+    };
+    
+    // Function to open Google Drive resources
+    function openGoogleDriveResource(lessonName, button) {
+        const resourceName = lessonResourceMap[lessonName];
+        
+        if (!resourceName) {
+            // No Google Drive resource for this lesson, mark as completed normally
+            setTimeout(() => {
+                button.innerHTML = '<i class="fas fa-check mr-1"></i>Completed';
+                button.classList.add('btn-success');
+                button.disabled = false;
+                
+                const row = button.closest('tr');
+                row.classList.add('table-success');
+                
+                console.log(`Completed lesson: ${lessonName}`);
+            }, 1000);
+            return;
+        }
+        
+        // Call Google Drive API to get resource URL
+        fetch(`/api/gdrive-resource/?resource=${encodeURIComponent(resourceName)}&folder=Alt`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Open Google Drive file in new tab
+                    window.open(data.file_url, '_blank');
+                    
+                    // Mark lesson as started
+                    button.innerHTML = '<i class="fas fa-external-link-alt mr-1"></i>Opened in Drive';
+                    button.classList.remove('btn-success');
+                    button.classList.add('btn-info');
+                    button.disabled = false;
+                    
+                    const row = button.closest('tr');
+                    row.classList.add('table-info');
+                    
+                    console.log(`Opened Google Drive resource: ${resourceName} for lesson: ${lessonName}`);
+                } else if (data.auth_required) {
+                    // Redirect to Google OAuth
+                    window.location.href = data.auth_url;
+                } else {
+                    // Handle error
+                    button.innerHTML = '<i class="fas fa-exclamation-triangle mr-1"></i>Error';
+                    button.classList.remove('btn-success');
+                    button.classList.add('btn-danger');
+                    button.disabled = false;
+                    
+                    console.error(`Error opening Google Drive resource: ${data.error}`);
+                    alert(`Error: ${data.error}`);
+                }
+            })
+            .catch(error => {
+                console.error('Error calling Google Drive API:', error);
+                button.innerHTML = '<i class="fas fa-exclamation-triangle mr-1"></i>Error';
+                button.classList.remove('btn-success');
+                button.classList.add('btn-danger');
+                button.disabled = false;
+                alert('Failed to access Google Drive. Please try again.');
+            });
+    }
+    
     // Handle course join button (only exists for non-admin users)
     const joinCourseBtn = document.getElementById('join-course-btn');
     const joinSection = document.getElementById('join-course-section');
@@ -645,30 +711,8 @@ document.addEventListener('DOMContentLoaded', function() {
             this.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Starting...';
             this.disabled = true;
             
-            // Simulate lesson start
-            setTimeout(() => {
-                this.innerHTML = '<i class="fas fa-play mr-1"></i>In Progress...';
-                this.classList.remove('btn-success');
-                this.classList.add('btn-warning');
-                
-                // Mark row as in progress
-                const row = this.closest('tr');
-                row.classList.add('table-warning');
-                
-                // After another delay, mark as completed
-                setTimeout(() => {
-                    this.innerHTML = '<i class="fas fa-check mr-1"></i>Completed';
-                    this.classList.remove('btn-warning');
-                    this.classList.add('btn-success');
-                    
-                    // Mark row as completed
-                    row.classList.remove('table-warning');
-                    row.classList.add('table-success');
-                    
-                    console.log(`Completed lesson: ${lessonName} for skill: ${skillName}`);
-                }, 4000);
-                
-            }, 1000);
+            // Get Google Drive resource for this lesson
+            openGoogleDriveResource(lessonName, this);
         });
     });
     

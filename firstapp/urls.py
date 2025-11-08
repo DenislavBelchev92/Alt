@@ -26,5 +26,9 @@ urlpatterns = [
     path('api/add-to-existing-session/', views.add_to_existing_session, name='add_to_existing_session'),
     path('debug/enrollment/', views.debug_enrollment, name='debug_enrollment'),
     path('course-admin/<path:skill_group>/<path:skill_subgroup>/<path:skill_name>/', views.course_detail, name='course_detail'),
+    
+    # Google Drive Integration
+    path('api/gdrive-resource/', views.get_gdrive_resource, name='gdrive_resource'),
+    path('oauth2callback/', views.oauth2callback, name='oauth2callback'),
 
 ]
