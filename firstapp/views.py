@@ -1093,7 +1093,9 @@ def get_gdrive_resource(request):
         
         # If authentication required, generate auth URL
         if not result['success'] and result.get('auth_required'):
-            auth_url = get_auth_url(request, request.user.id)
+            # Check if this is a retry request (force reset for scope issues)
+            force_reset = request.GET.get('reset_auth') == 'true'
+            auth_url = get_auth_url(request, request.user.id, force_reset=force_reset)
             if auth_url:
                 result['auth_url'] = auth_url
         

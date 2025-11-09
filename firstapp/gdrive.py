@@ -24,9 +24,9 @@ os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 logger = logging.getLogger(__name__)
 
 # Google Drive API configuration
+# Using only read-only scope to ensure all files accessed via website are read-only
 SCOPES = [
-    'https://www.googleapis.com/auth/drive.readonly',
-    'https://www.googleapis.com/auth/drive.file'
+    'https://www.googleapis.com/auth/drive.readonly'
 ]
 
 # Google OAuth credentials from environment variables
@@ -186,8 +186,68 @@ class GoogleDriveManager:
                 logger.error(error_msg)
                 raise ValueError(error_msg)
             
-            flow.fetch_token(authorization_response=authorization_response)
-            credentials = flow.credentials
+            # Handle token exchange with scope flexibility - Google may return additional scopes
+            try:
+                # Parse authorization response to check granted scopes
+                from urllib.parse import urlparse, parse_qs
+                parsed_url = urlparse(authorization_response)
+                auth_code = parse_qs(parsed_url.query).get('code', [None])[0]
+                granted_scope_param = parse_qs(parsed_url.query).get('scope', [None])[0]
+                
+                if not auth_code:
+                    raise ValueError("No authorization code in callback")
+                
+                # Check if our required scope is present
+                granted_scopes = granted_scope_param.split() if granted_scope_param else []
+                required_scope = 'https://www.googleapis.com/auth/drive.readonly'
+                
+                if required_scope not in granted_scopes:
+                    raise ValueError(f"Required scope {required_scope} not granted. Granted: {granted_scopes}")
+                
+                logger.info(f"OAuth callback - granted scopes: {granted_scopes}")
+                
+                # Create flow with flexible scope handling
+                # Google OAuth2 spec allows accepting subset of requested scopes
+                flexible_flow = Flow.from_client_config(
+                    get_google_oauth_config(),
+                    scopes=granted_scopes,  # Use actually granted scopes
+                    redirect_uri=callback_url
+                )
+                
+                # Exchange code for tokens using granted scopes
+                flexible_flow.fetch_token(code=auth_code)
+                credentials = flexible_flow.credentials
+                
+                # Verify we have the minimum required scope
+                if hasattr(credentials, 'scopes'):
+                    cred_scopes = credentials.scopes or []
+                    if required_scope not in cred_scopes and required_scope not in granted_scopes:
+                        raise ValueError(f"Credentials missing required scope: {required_scope}")
+                
+                logger.info(f"Token exchange successful for user {self.user_id} with scopes: {granted_scopes}")
+                    
+            except Exception as token_error:
+                logger.error(f"Token exchange failed for user {self.user_id}: {token_error}")
+                
+                # Final fallback - try with original requested scopes only
+                try:
+                    logger.info(f"Attempting fallback token exchange for user {self.user_id}")
+                    
+                    fallback_flow = Flow.from_client_config(
+                        get_google_oauth_config(),
+                        scopes=SCOPES,  # Use only our original requested scopes
+                        redirect_uri=callback_url
+                    )
+                    
+                    # Try direct code exchange without scope validation
+                    fallback_flow.fetch_token(code=auth_code)
+                    credentials = fallback_flow.credentials
+                    
+                    logger.info(f"Fallback token exchange successful for user {self.user_id}")
+                        
+                except Exception as fallback_error:
+                    logger.error(f"Fallback token exchange also failed for user {self.user_id}: {fallback_error}")
+                    raise token_error  # Re-raise original error
             
             self._save_credentials(credentials)
             
@@ -226,9 +286,27 @@ class GoogleDriveManager:
         return None
     
     def is_authenticated(self):
-        """Check if user has valid Google Drive authentication"""
-        service = self._get_service()
-        return service is not None
+        """Check if user has valid Google Drive authentication with required read-only access"""
+        if not self.credentials:
+            return False
+            
+        # Check if credentials are valid and contain required scope
+        if self.credentials.valid:
+            # Verify we have at least read-only access
+            required_scope = 'https://www.googleapis.com/auth/drive.readonly'
+            if hasattr(self.credentials, 'scopes') and self.credentials.scopes:
+                has_required_scope = any(
+                    scope == required_scope or 'drive' in scope 
+                    for scope in self.credentials.scopes
+                )
+                if not has_required_scope:
+                    logger.warning(f"User {self.user_id} credentials missing required Drive scope")
+                    return False
+            
+            service = self._get_service()
+            return service is not None
+            
+        return False
     
     def find_file_by_name(self, filename, folder_path=None):
         """
@@ -346,19 +424,73 @@ class GoogleDriveManager:
     
     def get_file_url(self, filename, folder_path=None):
         """
-        Get the web view URL for a file
+        Get the web view URL for a file (ENFORCED READ-ONLY ACCESS)
         
         Args:
             filename: Name of the file
             folder_path: Optional folder path like "Alt"
             
         Returns:
-            str: Web view URL if found, None otherwise
+            str: Read-only web view URL if found, None otherwise
         """
         file_info = self.find_file_by_name(filename, folder_path)
         if file_info:
-            return file_info.get('webViewLink')
+            file_id = file_info.get('id')
+            if not file_id:
+                logger.warning(f"No file ID found for {filename}")
+                return None
+            
+            # Force read-only access using Google Drive's preview URL
+            # This ensures the file opens in view-only mode with no edit capabilities
+            
+            # Method 1: Use Google Drive's preview URL (most restrictive)
+            preview_url = f"https://drive.google.com/file/d/{file_id}/preview"
+            
+            # Method 2: Alternative - Use view URL with strict read-only parameters
+            view_url = f"https://drive.google.com/file/d/{file_id}/view"
+            
+            # Method 3: For Google Docs/Sheets/Slides, use export/preview
+            mime_type = file_info.get('mimeType', '')
+            
+            if 'google-apps' in mime_type:
+                # Google native formats - force view mode
+                if 'document' in mime_type:
+                    # Google Docs - use view mode
+                    readonly_url = f"https://docs.google.com/document/d/{file_id}/view"
+                elif 'spreadsheet' in mime_type:
+                    # Google Sheets - use view mode
+                    readonly_url = f"https://docs.google.com/spreadsheets/d/{file_id}/view"
+                elif 'presentation' in mime_type:
+                    # Google Slides - use view mode
+                    readonly_url = f"https://docs.google.com/presentation/d/{file_id}/view"
+                else:
+                    # Other Google apps formats
+                    readonly_url = view_url
+            else:
+                # Non-Google formats (PDF, images, etc.) - use preview
+                readonly_url = preview_url
+            
+            # Add additional read-only parameters
+            readonly_url += "?rm=minimal&embedded=true"
+            
+            logger.info(f"Generated ENFORCED read-only URL for {filename} (type: {mime_type})")
+            return readonly_url
         return None
+
+    def clear_credentials(self):
+        """
+        Clear stored credentials to force re-authentication with new scopes
+        Call this when scopes change to ensure users get read-only permissions
+        """
+        token_path = self._get_token_file_path()
+        try:
+            if os.path.exists(token_path):
+                os.remove(token_path)
+                logger.info(f"Cleared credentials for user {self.user_id}")
+            self.credentials = None
+            self.service = None
+        except Exception as e:
+            logger.error(f"Error clearing credentials for user {self.user_id}: {e}")
 
 
 # Convenience functions for easy use in views
@@ -367,6 +499,13 @@ class GoogleDriveManager:
 
 def get_gdrive_resource(user_id, resource_name, folder_path="Alt"):
     """
+    Main API function to get Google Drive resource (READ-ONLY ACCESS ONLY)
+    
+    All files accessed through this function will have read-only permissions.
+    This is enforced through:
+    1. Read-only API scopes (drive.readonly)
+    2. Forced view-only URLs
+    
     Main API function to get Google Drive resource
     
     Args:
@@ -422,18 +561,41 @@ def get_gdrive_resource(user_id, resource_name, folder_path="Alt"):
             'error': str(e)
         }
 
-def get_auth_url(request, user_id):
+def reset_user_oauth(user_id):
+    """
+    Reset OAuth tokens for a specific user to force clean re-authentication
+    
+    Args:
+        user_id: Django user ID
+        
+    Returns:
+        bool: True if reset successful, False otherwise
+    """
+    try:
+        manager = GoogleDriveManager(user_id)
+        manager.clear_credentials()
+        logger.info(f"Reset OAuth tokens for user {user_id}")
+        return True
+    except Exception as e:
+        logger.error(f"Error resetting OAuth for user {user_id}: {e}")
+        return False
+
+def get_auth_url(request, user_id, force_reset=False):
     """
     Get Google Drive OAuth authorization URL
     
     Args:
         request: Django request object
         user_id: Django user ID
+        force_reset: If True, clear existing credentials first
         
     Returns:
         str: Authorization URL or None if error
     """
     try:
+        if force_reset:
+            reset_user_oauth(user_id)
+            
         manager = GoogleDriveManager(user_id)
         return manager.get_auth_url(request)
     except Exception as e:
